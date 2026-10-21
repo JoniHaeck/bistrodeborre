@@ -9,3 +9,12 @@ export function formatDatum(datum: string, metJaar = false): string {
     timeZone: "UTC",
   }).format(new Date(Date.UTC(j, m - 1, d)));
 }
+
+/** ISO-tijdstip -> "21/10/2026, 18:30" in Europe/Brussels. */
+export function formatTijdstip(iso: string): string {
+  return new Intl.DateTimeFormat("nl-BE", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "Europe/Brussels",
+  }).format(new Date(iso));
+}

@@ -87,10 +87,18 @@ Plaats op de publieke website:
 `data-target="#element"` plaatst de widget in een bestaand element. De iframe past zijn hoogte
 automatisch aan. Rechtstreeks kan ook: `/widget?kleur=%237a1f2b&lettertype=Georgia,serif`.
 
+## Beheer
+
+Log in via `/admin/login`. Alleen gebruikers met `app_metadata.role = "admin"`
+krijgen toegang (zowel in de app als via RLS, zie migratie 0007). Een
+beheerder aanmaken: Supabase > Authentication > Users > gebruiker toevoegen en
+daarna in de SQL-editor:
+
+```sql
+update auth.users set raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}' where email = 'jij@example.com';
+```
+
 ## Status
 
-Stap 1 (schema), 2 (beschikbaarheidslogica), 3 (publiek formulier), 4 (e-mails
-en herinneringen) en 5 (widget) zijn afgerond. Volgende stappen: admin-backend en
-deploy-instructies.
-
-Deploy-instructies voor Vercel volgen in de laatste stap van dit project.
+Stap 1 t.e.m. 6 (inclusief admin-backend) zijn afgerond. Volgende stap:
+deploy-instructies voor Vercel.
