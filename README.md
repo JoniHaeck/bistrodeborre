@@ -76,8 +76,8 @@ uitgevoerd worden (bv. via de Supabase SQL Editor).
 
 ## Status
 
-Stap 1 (schema), 2 (beschikbaarheidslogica) en 3 (publiek formulier) zijn
-afgerond. Volgende stappen: e-mails, widget, admin-backend en
+Stap 1 (schema), 2 (beschikbaarheidslogica), 3 (publiek formulier) en 4 (e-mails
+en herinneringen) zijn afgerond. Volgende stappen: widget, admin-backend en
 deploy-instructies.
 
 Deploy-instructies voor Vercel volgen in de laatste stap van dit project.

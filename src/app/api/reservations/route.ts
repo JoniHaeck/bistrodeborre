@@ -1,8 +1,9 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, after, type NextRequest } from "next/server";
 import { reservatieSchema } from "@/lib/validation";
 import { valideerReservatie } from "@/lib/availability";
 import { laadAvailabilityContext } from "@/lib/availability-data";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import { stuurNieuweReservatieMails } from "@/lib/email/send";
 
 /** Publiek: nieuwe reservatie. Alle validatie gebeurt hier, de database controleert de capaciteit nogmaals atomair. */
 export async function POST(request: NextRequest) {
@@ -58,6 +59,9 @@ export async function POST(request: NextRequest) {
       }
       throw error;
     }
+
+    // Mails na de respons versturen: een mailfout mag een geslaagde boeking nooit blokkeren.
+    after(() => stuurNieuweReservatieMails(data));
 
     return NextResponse.json(
       {
