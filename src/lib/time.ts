@@ -9,8 +9,8 @@ export function nuInBrussel(): Date {
 }
 
 /** Huidige kalenderdatum (YYYY-MM-DD) in Europe/Brussels. */
-export function vandaagInBrussel(): string {
-  return formatInTimeZone(new Date(), RESTAURANT_TIJDZONE, "yyyy-MM-dd");
+export function vandaagInBrussel(nu: Date = new Date()): string {
+  return formatInTimeZone(nu, RESTAURANT_TIJDZONE, "yyyy-MM-dd");
 }
 
 /**
