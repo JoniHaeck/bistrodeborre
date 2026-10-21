@@ -68,7 +68,7 @@ uitgevoerd worden (bv. via de Supabase SQL Editor).
   `SECURITY DEFINER`-functies `create_reservation()` en
   `cancel_reservation()`, die binnen één transactie de capaciteit
   herverifiëren (voorkomt overboeking bij gelijktijdige aanvragen).
-- Beheerders (Supabase Auth, `authenticated`) hebben volledige lees-/
+- Beheerders (Supabase Auth met `app_metadata.role = "admin"`, zie `is_admin()`) hebben volledige lees-/
   schrijftoegang tot alle tabellen.
 - Elke insert/update op `reservations` triggert automatisch een
   `reservation_logs`-rij en een `notifications`-rij (voor het live
@@ -98,7 +98,36 @@ daarna in de SQL-editor:
 update auth.users set raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}' where email = 'jij@example.com';
 ```
 
+## Deployen op Vercel
+
+1. **Supabase**: maak een project, `supabase link --project-ref <ref>` en `supabase db push`
+   (migraties 0001–0007). Voer daarna `supabase/seed.sql` uit in de SQL Editor.
+   Zet in Authentication > Settings het aanmaken van nieuwe gebruikers uit.
+2. **Beheerder**: maak een gebruiker aan en geef die de rol `admin` (zie "Beheer").
+3. **GitHub + Vercel**: push de code, importeer de repo in Vercel (framework Next.js,
+   `vercel.json` is aanwezig).
+4. **Environment variables** (Vercel > Settings > Environment Variables, Production):
+
+   | Variabele | Waarde |
+   |---|---|
+   | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project-URL |
+   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | publishable/anon key |
+   | `SUPABASE_SECRET_KEY` | secret/service_role key (enkel server-side) |
+   | `RESEND_API_KEY` | Resend API-key |
+   | `EMAIL_FROM` | `Bistro de Borre <reservaties@jouwdomein.be>` |
+   | `NOTIFICATION_EMAIL` | fallback restaurant-adres |
+   | `CRON_SECRET` | lange willekeurige string; Vercel stuurt die mee als `Authorization: Bearer` |
+   | `NEXT_PUBLIC_SITE_URL` | `https://<jouw-domein>` (voor annuleerlinks) |
+
+   Wachtwoorden en keys horen enkel in Vercel/`.env.local`, nooit in de code.
+5. **Cron**: `vercel.json` plant `/api/cron/reminders` elk uur. Uurlijkse crons vereisen
+   Vercel Pro; op Hobby kan enkel dagelijks.
+6. **Resend-domein**: verifieer een domein in Resend en pas `EMAIL_FROM` aan. Zonder
+   domein mailt Resend enkel naar het adres van het eigen account.
+7. **Controle**: `/reserveren` en `/widget` laden, `/admin/login` laat je inloggen, een
+   testreservatie geeft een mail en een melding in de bel.
+8. Als een deploy 404 geeft op nieuwe routes: `vercel deploy --prod --force`.
+
 ## Status
 
-Stap 1 t.e.m. 6 (inclusief admin-backend) zijn afgerond. Volgende stap:
-deploy-instructies voor Vercel.
+Alle 7 stappen zijn afgerond.
