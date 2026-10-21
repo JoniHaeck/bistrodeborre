@@ -39,3 +39,17 @@ export async function laadAvailabilityContext(): Promise<AvailabilityContext> {
     nu,
   };
 }
+
+export type PubliekeInstellingen = {
+  restaurant_naam: string;
+  max_groepsgrootte: number;
+  widget_primaire_kleur: string;
+  widget_lettertype: string;
+  menu_link: string | null;
+};
+
+export async function laadPubliekeInstellingen(): Promise<PubliekeInstellingen> {
+  const { data, error } = await createServiceRoleClient().rpc("get_public_settings").single();
+  if (error) throw error;
+  return data;
+}
