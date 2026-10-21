@@ -74,10 +74,23 @@ uitgevoerd worden (bv. via de Supabase SQL Editor).
   `reservation_logs`-rij en een `notifications`-rij (voor het live
   meldingensysteem in de admin-backend).
 
+## Widget insluiten
+
+Plaats op de publieke website:
+
+```html
+<script src="https://bistrodeborre.vercel.app/embed.js"
+        data-kleur="#7a1f2b" data-lettertype="Georgia, serif"></script>
+```
+
+`data-kleur` en `data-lettertype` zijn optioneel (standaard komen ze uit de instellingen);
+`data-target="#element"` plaatst de widget in een bestaand element. De iframe past zijn hoogte
+automatisch aan. Rechtstreeks kan ook: `/widget?kleur=%237a1f2b&lettertype=Georgia,serif`.
+
 ## Status
 
-Stap 1 (schema), 2 (beschikbaarheidslogica), 3 (publiek formulier) en 4 (e-mails
-en herinneringen) zijn afgerond. Volgende stappen: widget, admin-backend en
+Stap 1 (schema), 2 (beschikbaarheidslogica), 3 (publiek formulier), 4 (e-mails
+en herinneringen) en 5 (widget) zijn afgerond. Volgende stappen: admin-backend en
 deploy-instructies.
 
 Deploy-instructies voor Vercel volgen in de laatste stap van dit project.
