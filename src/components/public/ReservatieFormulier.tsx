@@ -1,28 +1,32 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { formatDatum } from "@/lib/format";
+import { formatDatum, formatDatumKort } from "@/lib/format";
 
 type SlotInfo = { tijdslot: string; shift: string };
 type Bevestiging = { datum: string; tijdslot: string; aantal: number; menu: boolean; voornaam: string };
 
 type Props = {
   initieleDagen: string[];
+  vandaag: string;
   initieelAantal: number;
   maxGroepsgrootte: number;
   menuLink: string | null;
 };
 
 const veldKlasse =
-  "mt-1 block w-full rounded-[5px] border border-neutral-400 bg-white px-3 py-2 text-base text-neutral-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--kleur-primair)]";
-const labelKlasse = "block text-sm font-medium text-neutral-900";
+  "mt-1 block w-full rounded-[5px] border border-[#8b8a69] bg-white px-3 py-2 text-base text-[#404041] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--kleur-primair)]";
+const labelKlasse = "block text-sm font-semibold text-[#404041]";
 
-export function ReservatieFormulier({ initieleDagen, initieelAantal, maxGroepsgrootte, menuLink }: Props) {
+export function ReservatieFormulier({ initieleDagen, vandaag, initieelAantal, maxGroepsgrootte, menuLink }: Props) {
   const [aantal, setAantal] = useState(initieelAantal);
   const [dagen, setDagen] = useState(initieleDagen);
   const [datum, setDatum] = useState("");
   const [slots, setSlots] = useState<SlotInfo[]>([]);
   const [tijdslot, setTijdslot] = useState("");
+  const [menu, setMenu] = useState(false);
+  const [stap, setStap] = useState<"kies" | "contact">("kies");
+  const [open, setOpen] = useState<"aantal" | "datum" | "tijd" | null>("datum");
   const [laden, setLaden] = useState(false);
   const [bezig, setBezig] = useState(false);
   const [fouten, setFouten] = useState<Record<string, string>>({});
@@ -47,6 +51,7 @@ export function ReservatieFormulier({ initieleDagen, initieelAantal, maxGroepsgr
     setAantal(waarde);
     setTijdslot("");
     setMelding("");
+    setOpen("datum");
     const id = ++aanvraag.current;
     setLaden(true);
     try {
@@ -74,6 +79,7 @@ export function ReservatieFormulier({ initieleDagen, initieelAantal, maxGroepsgr
     setTijdslot("");
     setMelding("");
     setSlots([]);
+    setOpen("tijd");
     if (waarde) await laadSlots(aantal, waarde);
   }
 
@@ -96,7 +102,7 @@ export function ReservatieFormulier({ initieleDagen, initieelAantal, maxGroepsgr
         email: form.get("email"),
         telefoon: form.get("telefoon"),
         opmerking: form.get("opmerking") || undefined,
-        menu: form.get("menu") === "on",
+        menu,
         website: form.get("website") || undefined,
       }),
     }).catch(() => null);
@@ -109,7 +115,7 @@ export function ReservatieFormulier({ initieleDagen, initieelAantal, maxGroepsgr
     const json = await res.json().catch(() => ({}));
 
     if (res.ok) {
-      setKlaar(json.reservatie ?? { datum, tijdslot, aantal, menu: form.get("menu") === "on", voornaam: "" });
+      setKlaar(json.reservatie ?? { datum, tijdslot, aantal, menu, voornaam: "" });
       return;
     }
     if (json.fout === "validatie") {
@@ -120,22 +126,22 @@ export function ReservatieFormulier({ initieleDagen, initieelAantal, maxGroepsgr
     setMelding(json.bericht ?? "Er ging iets mis. Probeer het opnieuw.");
     if (res.status === 409 || res.status === 422) {
       setTijdslot("");
+      setStap("kies");
+      setOpen("tijd");
       await laadSlots(aantal, datum);
     }
   }
 
   if (klaar) {
     return (
-      <div role="status" className="rounded-lg border border-neutral-300 bg-white p-6">
-        <h2 className="text-xl font-semibold">Bedankt{klaar.voornaam ? `, ${klaar.voornaam}` : ""}!</h2>
+      <div role="status" className="rounded-[5px] bg-[#f3f3f0] p-6">
+        <h2 className="text-2xl">Bedankt{klaar.voornaam ? `, ${klaar.voornaam}` : ""}!</h2>
         <p className="mt-3">
           Uw reservatie voor <strong>{klaar.aantal} {klaar.aantal === 1 ? "persoon" : "personen"}</strong> op{" "}
           <strong>{formatDatum(klaar.datum)}</strong> om <strong>{klaar.tijdslot}</strong> is genoteerd.
           {klaar.menu ? " Jullie nemen het menu." : " Jullie kiezen à la carte."}
         </p>
-        <p className="mt-3 text-sm text-neutral-700">
-          U ontvangt een bevestiging per e-mail, met een link om te annuleren.
-        </p>
+        <p className="mt-3 text-sm">U ontvangt een bevestiging per e-mail, met een link om te annuleren.</p>
       </div>
     );
   }
@@ -144,121 +150,161 @@ export function ReservatieFormulier({ initieleDagen, initieelAantal, maxGroepsgr
     (acc[s.shift] ??= []).push(s);
     return acc;
   }, {});
+  const dagLabel = (d: string) => (d === vandaag ? "Vandaag" : null);
+  const aantalLabel = `${aantal} ${aantal === 1 ? "gast" : "gasten"}`;
+  const kiesKlaar = Boolean(datum && tijdslot);
 
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-6" aria-busy={bezig}>
-      <div aria-live="polite" className="min-h-0">
+    <form onSubmit={onSubmit} noValidate aria-busy={bezig}>
+      <div aria-live="polite">
         {melding && (
-          <p role="alert" className="rounded-[5px] border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">
+          <p role="alert" className="mb-4 rounded-[5px] border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">
             {melding}
           </p>
         )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor="aantal" className={labelKlasse}>Aantal personen</label>
-          <select
-            id="aantal"
-            value={aantal}
-            onChange={(e) => onAantal(Number(e.target.value))}
-            className={veldKlasse}
-          >
+      {/* Stap 1: kiezen. Blijft gemount (enkel verborgen) zodat keuzes behouden blijven. */}
+      <div hidden={stap !== "kies"} className="space-y-3">
+        <Accordeon
+          id="aantal"
+          icoon={<IcoCouvert />}
+          titel={aantalLabel}
+          open={open === "aantal"}
+          onToggle={() => setOpen(open === "aantal" ? null : "aantal")}
+        >
+          <div role="radiogroup" aria-label="Aantal personen" className="grid grid-cols-5 gap-2">
             {Array.from({ length: maxGroepsgrootte }, (_, i) => i + 1).map((n) => (
-              <option key={n} value={n}>{n}</option>
+              <Keuze key={n} actief={aantal === n} onClick={() => onAantal(n)}>{n}</Keuze>
             ))}
-          </select>
-          <p className="mt-1 text-xs text-neutral-600">
-            Met meer dan {maxGroepsgrootte} personen? Neem contact met ons op.
-          </p>
-        </div>
+          </div>
+          <p className="mt-2 text-xs">Met meer dan {maxGroepsgrootte} personen? Neem contact met ons op.</p>
+        </Accordeon>
 
-        <div>
-          <label htmlFor="datum" className={labelKlasse}>Datum</label>
-          <select
-            id="datum"
-            value={datum}
-            onChange={(e) => onDatum(e.target.value)}
-            aria-describedby={fouten.datum ? "datum-fout" : undefined}
-            className={veldKlasse}
-          >
-            <option value="">Kies een datum…</option>
-            {dagen.map((d) => (
-              <option key={d} value={d}>{formatDatum(d)}</option>
-            ))}
-          </select>
-          {dagen.length === 0 && !laden && (
-            <p className="mt-1 text-xs text-neutral-700">Geen beschikbare dagen voor dit aantal personen.</p>
+        <Accordeon
+          id="datum"
+          icoon={<IcoKalender />}
+          titel={datum ? formatDatumKort(datum) : "Kies een datum"}
+          open={open === "datum"}
+          onToggle={() => setOpen(open === "datum" ? null : "datum")}
+        >
+          {dagen.length === 0 && !laden ? (
+            <p className="text-sm">Geen beschikbare dagen voor dit aantal personen.</p>
+          ) : (
+            <div role="radiogroup" aria-label="Datum" className="grid max-h-64 grid-cols-2 gap-2 overflow-y-auto pr-1">
+              {dagen.map((d) => (
+                <Keuze key={d} actief={datum === d} onClick={() => onDatum(d)}>
+                  <span className="block">{formatDatumKort(d)}</span>
+                  {dagLabel(d) && <span className="block text-xs font-normal">{dagLabel(d)}</span>}
+                </Keuze>
+              ))}
+            </div>
           )}
-          {fouten.datum && <p id="datum-fout" className="mt-1 text-sm text-red-800">{fouten.datum}</p>}
-        </div>
-      </div>
+          {fouten.datum && <p className="mt-1 text-sm text-red-800">{fouten.datum}</p>}
+        </Accordeon>
 
-      {datum && (
-        <fieldset aria-describedby={fouten.tijdslot ? "tijd-fout" : undefined}>
-          <legend className={labelKlasse}>Tijdstip</legend>
-          {slots.length === 0 && !laden && (
-            <p className="mt-2 text-sm text-neutral-700">Geen vrije plaatsen meer op deze dag.</p>
-          )}
+        <Accordeon
+          id="tijd"
+          icoon={<IcoKlok />}
+          titel={tijdslot || "Tijdstip"}
+          open={open === "tijd"}
+          onToggle={() => setOpen(open === "tijd" ? null : "tijd")}
+          uitgeschakeld={!datum}
+        >
+          {laden && <p role="status" className="text-sm">Laden…</p>}
+          {!laden && slots.length === 0 && <p className="text-sm">Geen vrije plaatsen meer op deze dag.</p>}
           {Object.entries(perShift).map(([shift, lijst]) => (
-            <div key={shift} className="mt-3">
-              <p className="text-sm text-neutral-700">{shift}</p>
-              <div className="mt-1 flex flex-wrap gap-2">
+            <div key={shift} className="mb-3 last:mb-0">
+              <p className="mb-1 text-sm font-semibold">{shift}</p>
+              <div role="radiogroup" aria-label={shift} className="grid grid-cols-3 gap-2">
                 {lijst.map((s) => (
-                  <label
+                  <Keuze
                     key={s.tijdslot}
-                    className="cursor-pointer rounded-[5px] border border-neutral-400 bg-white px-3 py-2 text-sm has-[:checked]:border-[var(--kleur-primair)] has-[:checked]:bg-[var(--kleur-primair)] has-[:checked]:text-[var(--kleur-primair-tekst,#000)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--kleur-primair)]"
+                    actief={tijdslot === s.tijdslot}
+                    onClick={() => {
+                      setTijdslot(s.tijdslot);
+                      setOpen(null);
+                    }}
                   >
-                    <input
-                      type="radio"
-                      name="tijdslot"
-                      value={s.tijdslot}
-                      checked={tijdslot === s.tijdslot}
-                      onChange={() => setTijdslot(s.tijdslot)}
-                      className="sr-only"
-                    />
                     {s.tijdslot}
-                  </label>
+                  </Keuze>
                 ))}
               </div>
             </div>
           ))}
-          {fouten.tijdslot && <p id="tijd-fout" className="mt-1 text-sm text-red-800">{fouten.tijdslot}</p>}
-        </fieldset>
-      )}
+          {fouten.tijdslot && <p className="mt-1 text-sm text-red-800">{fouten.tijdslot}</p>}
+        </Accordeon>
 
-      {tijdslot && (
-        <>
-          <div className="rounded-[5px] border border-neutral-300 bg-neutral-50 p-4">
-            <label className="flex items-start gap-3">
-              <input type="checkbox" name="menu" className="mt-1 h-5 w-5 accent-[var(--kleur-primair)]" />
-              <span>
-                <span className="font-medium">Wij nemen het menu</span>
-                <span className="block text-sm text-neutral-700">
-                  Geldt voor de hele tafel. Zo kan de keuken sneller bedienen.
-                  {menuLink && (
-                    <>
-                      {" "}
-                      <a href={menuLink} target="_blank" rel="noopener noreferrer" className="underline">
-                        Bekijk het menu
-                      </a>
-                    </>
-                  )}
-                </span>
+        <div className="rounded-[5px] bg-[#f3f3f0] p-4">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={menu}
+              onChange={(e) => setMenu(e.target.checked)}
+              className="mt-1 h-5 w-5 accent-[var(--kleur-primair)]"
+            />
+            <span>
+              <span className="font-semibold">Wij nemen het menu</span>
+              <span className="block text-sm">
+                Geldt voor de hele tafel. Zo kan de keuken sneller bedienen.
+                {menuLink && (
+                  <>
+                    {" "}
+                    <a href={menuLink} target="_blank" rel="noopener noreferrer" className="underline">
+                      Bekijk het menu
+                    </a>
+                  </>
+                )}
               </span>
-            </label>
-          </div>
+            </span>
+          </label>
+        </div>
 
+        <button type="button" disabled={!kiesKlaar} onClick={() => setStap("contact")} className={hoofdKnop}>
+          Reserveren
+        </button>
+      </div>
+
+      {/* Stap 2: contactgegevens */}
+      <div hidden={stap !== "contact"}>
+        <div className="mb-5 rounded-[5px] bg-[#f3f3f0] p-4">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-xl">Uw reservering</h2>
+            <button type="button" onClick={() => setStap("kies")} className="text-sm underline">
+              wijzigen
+            </button>
+          </div>
+          <ul className="mt-3 space-y-2 font-semibold">
+            <li className="flex items-center gap-3"><IcoCouvert />{aantalLabel}</li>
+            <li className="flex items-center gap-3"><IcoKalender />{datum ? formatDatumKort(datum) : ""}</li>
+            <li className="flex items-center gap-3"><IcoKlok />{tijdslot}</li>
+            <li className="flex items-center gap-3"><IcoMenu />{menu ? "Met menu" : "Zonder menu (à la carte)"}</li>
+          </ul>
+        </div>
+
+        <div className="mb-3 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setStap("kies")}
+            aria-label="Terug naar uw keuze"
+            className="rounded-[5px] px-2 py-1 text-2xl leading-none"
+          >
+            ‹
+          </button>
+          <h2 className="text-2xl">Contact</h2>
+        </div>
+
+        <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Veld id="voornaam" label="Voornaam" fout={fouten.voornaam} autoComplete="given-name" />
-            <Veld id="naam" label="Naam" fout={fouten.naam} autoComplete="family-name" />
-            <Veld id="email" label="E-mail" type="email" fout={fouten.email} autoComplete="email" />
-            <Veld id="telefoon" label="Telefoon" type="tel" fout={fouten.telefoon} autoComplete="tel" />
+            <Veld id="naam" label="Achternaam" fout={fouten.naam} autoComplete="family-name" />
           </div>
+          <Veld id="telefoon" label="Telefoon" type="tel" fout={fouten.telefoon} autoComplete="tel" placeholder="+32 470 12 34 56" />
+          <Veld id="email" label="E-mail" type="email" fout={fouten.email} autoComplete="email" />
 
           <div>
             <label htmlFor="opmerking" className={labelKlasse}>
-              Opmerking <span className="font-normal text-neutral-600">(optioneel)</span>
+              Opmerkingen, allergieën of dieetwensen <span className="font-normal">(optioneel)</span>
             </label>
             <textarea id="opmerking" name="opmerking" rows={3} maxLength={500} className={veldKlasse} />
             {fouten.opmerking && <p className="mt-1 text-sm text-red-800">{fouten.opmerking}</p>}
@@ -269,27 +315,78 @@ export function ReservatieFormulier({ initieleDagen, initieelAantal, maxGroepsgr
             <label>Website<input type="text" name="website" tabIndex={-1} autoComplete="off" /></label>
           </div>
 
-          <p className="text-xs text-neutral-700">
+          <p className="text-xs">
             Wij gebruiken uw gegevens enkel om uw reservatie te beheren en u daarover te contacteren
             (bevestiging en herinnering). We delen ze niet met derden en bewaren ze niet langer dan nodig.
           </p>
 
-          <button
-            type="submit"
-            disabled={bezig}
-            className="w-full rounded-[5px] bg-[var(--kleur-primair)] px-4 py-3 text-base font-semibold text-[var(--kleur-primair-tekst,#000)] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--kleur-primair)]"
-          >
-            {bezig ? "Bezig…" : "Reservatie bevestigen"}
+          <button type="submit" disabled={bezig} className={hoofdKnop}>
+            {bezig ? "Bezig…" : "Reserveren"}
           </button>
-        </>
-      )}
+        </div>
+      </div>
     </form>
   );
 }
 
+const hoofdKnop =
+  "w-full rounded-[5px] bg-[var(--kleur-primair)] px-4 py-3 text-base font-semibold text-[var(--kleur-primair-tekst,#000)] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--kleur-primair)]";
+
+function Accordeon({
+  id, icoon, titel, open, onToggle, uitgeschakeld, children,
+}: {
+  id: string; icoon: React.ReactNode; titel: string; open: boolean; onToggle: () => void;
+  uitgeschakeld?: boolean; children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-[5px] border border-[#dcdcd2] bg-white">
+      <button
+        type="button"
+        id={`${id}-knop`}
+        aria-expanded={open}
+        aria-controls={`${id}-paneel`}
+        disabled={uitgeschakeld}
+        onClick={onToggle}
+        className="flex w-full items-center gap-3 px-4 py-3 text-left font-semibold disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-[var(--kleur-primair)]"
+      >
+        {icoon}
+        <span className="flex-1">{titel}</span>
+        <span aria-hidden="true" className={`transition-transform ${open ? "rotate-180" : ""}`}>⌄</span>
+      </button>
+      <div id={`${id}-paneel`} role="region" aria-labelledby={`${id}-knop`} hidden={!open} className="border-t border-[#dcdcd2] p-4">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Keuze({ actief, onClick, children }: { actief: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={actief}
+      onClick={onClick}
+      className={`rounded-[5px] border px-2 py-2 text-center text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--kleur-primair)] ${
+        actief
+          ? "border-[var(--kleur-primair)] bg-[var(--kleur-primair)] text-[var(--kleur-primair-tekst,#000)]"
+          : "border-[#dcdcd2] bg-white hover:bg-[#f3f3f0]"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+const ico = { width: 22, height: 22, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true } as const;
+function IcoCouvert() { return <svg {...ico}><path d="M6 3v7a2 2 0 0 0 2 2v9M10 3v7M6 3v7M18 3c-2 1-3 4-3 7h3v11" /></svg>; }
+function IcoKalender() { return <svg {...ico}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></svg>; }
+function IcoKlok() { return <svg {...ico}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>; }
+function IcoMenu() { return <svg {...ico}><path d="M5 4h14v16H5zM9 9h6M9 13h6" /></svg>; }
+
 function Veld({
-  id, label, type = "text", fout, autoComplete,
-}: { id: string; label: string; type?: string; fout?: string; autoComplete?: string }) {
+  id, label, type = "text", fout, autoComplete, placeholder,
+}: { id: string; label: string; type?: string; fout?: string; autoComplete?: string; placeholder?: string }) {
   return (
     <div>
       <label htmlFor={id} className={labelKlasse}>{label}</label>
@@ -299,6 +396,7 @@ function Veld({
         type={type}
         required
         autoComplete={autoComplete}
+        placeholder={placeholder}
         aria-invalid={fout ? true : undefined}
         aria-describedby={fout ? `${id}-fout` : undefined}
         className={veldKlasse}

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 /** Embedbare widget. Query: ?kleur=%238b8a69&lettertype=Georgia,serif (overschrijft de instellingen). */
 export default function WidgetPage({ searchParams }: PageProps<"/widget">) {
   return (
-    <main className="w-full p-4">
+    <main className="w-full p-0">
       <WidgetResizer />
       <Suspense fallback={<p role="status">Beschikbaarheid laden…</p>}>
         <Widget searchParams={searchParams} />

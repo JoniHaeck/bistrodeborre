@@ -18,3 +18,11 @@ export function formatTijdstip(iso: string): string {
     timeZone: "Europe/Brussels",
   }).format(new Date(iso));
 }
+
+/** "2026-10-23" -> "vr 23 okt". */
+export function formatDatumKort(datum: string): string {
+  const [j, m, d] = datum.split("-").map(Number);
+  return new Intl.DateTimeFormat("nl-BE", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })
+    .format(new Date(Date.UTC(j, m - 1, d)))
+    .replace(/\./g, "");
+}

@@ -54,17 +54,25 @@
   dialoog.setAttribute("aria-modal", "true");
   dialoog.setAttribute("aria-label", "Reserveren bij Bistro de Borre");
   dialoog.style.cssText =
-    "position:relative;max-width:560px;margin:0 auto;background:#fff;border-radius:5px;padding:40px 16px 16px;box-sizing:border-box;box-shadow:0 10px 40px rgba(0,0,0,.35)";
+    "position:relative;max-width:520px;margin:0 auto;background:#fff;border-radius:5px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.35)";
+  var kop = document.createElement("div");
+  kop.style.cssText =
+    "display:flex;align-items:center;justify-content:space-between;padding:12px 12px 12px 20px;background:" + kleur +
+    ";color:#000;font:400 22px/1.2 'DM Serif Text',Georgia,serif";
+  kop.textContent = "Bistro de Borre";
   var sluit = document.createElement("button");
   sluit.type = "button";
   sluit.setAttribute("aria-label", "Sluiten");
   sluit.textContent = "×";
   sluit.style.cssText =
-    "position:absolute;top:6px;right:8px;width:36px;height:36px;border:0;border-radius:5px;background:" +
-    kleur + ";color:#000;font-size:24px;line-height:1;cursor:pointer";
+    "width:36px;height:36px;border:0;border-radius:5px;background:transparent;color:#000;font-size:28px;line-height:1;cursor:pointer";
+  kop.appendChild(sluit);
   iframe.style.cssText = "width:100%;border:0;display:block;min-height:480px;overflow:hidden";
-  dialoog.appendChild(sluit);
-  dialoog.appendChild(iframe);
+  var binnen = document.createElement("div");
+  binnen.style.cssText = "padding:16px";
+  binnen.appendChild(iframe);
+  dialoog.appendChild(kop);
+  dialoog.appendChild(binnen);
   overlay.appendChild(dialoog);
   document.body.appendChild(overlay);
 

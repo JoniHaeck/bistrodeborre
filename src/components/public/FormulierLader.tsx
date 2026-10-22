@@ -1,3 +1,4 @@
+import { vandaagInBrussel } from "@/lib/time";
 import { connection } from "next/server";
 import { ReservatieFormulier } from "@/components/public/ReservatieFormulier";
 import { getBeschikbareDagen } from "@/lib/availability";
@@ -59,6 +60,7 @@ export async function FormulierLader({ kleur, lettertype }: { kleur?: string; le
     >
       <ReservatieFormulier
         initieleDagen={data.dagen}
+        vandaag={vandaagInBrussel()}
         initieelAantal={STANDAARD_AANTAL}
         maxGroepsgrootte={instellingen.max_groepsgrootte}
         menuLink={instellingen.menu_link}
