@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Widget-demo — Bistro de Borre</title>
+  <style>
+    @font-face { font-family: "Open Sans"; font-weight: 400; src: url("/fonts/OpenSans-Regular.woff2") format("woff2"); }
+    @font-face { font-family: "DM Serif Text"; font-weight: 400; src: url("/fonts/DMSerifText-Regular.woff2") format("woff2"); }
+    body { margin: 0; font-family: "Open Sans", system-ui, sans-serif; color: #404041; background: #f3f3f0; line-height: 1.5; }
+    main { max-width: 640px; margin: 0 auto; padding: 32px 16px; }
+    h1, h2 { font-family: "DM Serif Text", Georgia, serif; font-weight: 400; color: #38372a; }
+    section { background: #fff; border-radius: 5px; padding: 20px; margin-top: 24px; }
+    code { background: #f3f3f0; padding: 2px 6px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Reserveren bij Bistro de Borre</h1>
+    <p>Demopagina van de reservatiewidget, ingesloten met <code>embed.js</code>.</p>
+
+    <section>
+      <h2>Als popup</h2>
+      <script src="/embed.js" data-modus="popup" data-knop-tekst="Reserveer een tafel"></script>
+    </section>
+
+    <section>
+      <h2>Direct op de pagina</h2>
+      <script src="/embed.js"></script>
+    </section>
+  </main>
+</body>
+</html>
