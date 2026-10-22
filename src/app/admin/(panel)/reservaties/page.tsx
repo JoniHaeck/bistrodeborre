@@ -113,7 +113,7 @@ export default async function ReservatiesPage({ searchParams }: { searchParams: 
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-neutral-100">
             <tr>
-              {["Datum", "Uur", "Naam", "Pers.", "Menu", "Telefoon", "Status"].map((h) => (
+              {["Datum", "Uur", "Naam", "Pers.", "Menu", "Telefoon", "Status", ""].map((h) => (
                 <th key={h} scope="col" className="px-3 py-2 font-semibold">
                   {h}
                 </th>
@@ -134,6 +134,11 @@ export default async function ReservatiesPage({ searchParams }: { searchParams: 
                 <td className="px-3 py-2">{r.menu ? "Ja" : "Nee"}</td>
                 <td className="px-3 py-2">{r.telefoon ?? "—"}</td>
                 <td className="px-3 py-2">{STATUS_LABEL[r.status]}</td>
+                <td className="px-3 py-2 print:hidden">
+                  <Link href={`/admin/reservaties/${r.id}#bewerken`} className="underline">
+                    Bewerken
+                  </Link>
+                </td>
               </tr>
             ))}
           </tbody>

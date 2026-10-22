@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActieFormulier } from "@/components/admin/ActieFormulier";
 import { Bezetting } from "@/components/admin/Bezetting";
+import { DagKiezer } from "@/components/admin/DagKiezer";
 import { PrintKnop } from "@/components/admin/PrintKnop";
 import { adminDb } from "@/lib/admin/auth";
 import { STATUS_LABEL, laadDagContext } from "@/lib/admin/data";
@@ -35,6 +36,7 @@ export default async function DagPage({ params }: { params: Promise<{ datum: str
           <Link href={`/admin/dag/${voegDagenToe(datum, 1)}`} className="btn-sec">
             Volgende dag →
           </Link>
+          <DagKiezer datum={datum} />
         </nav>
         <PrintKnop />
       </div>
@@ -62,13 +64,14 @@ export default async function DagPage({ params }: { params: Promise<{ datum: str
                   <th scope="col" className="py-1 pr-3">Pers.</th>
                   <th scope="col" className="py-1 pr-3">Menu</th>
                   <th scope="col" className="py-1 pr-3">Telefoon</th>
-                  <th scope="col" className="py-1">Opmerking</th>
+                  <th scope="col" className="py-1 pr-3">Opmerking</th>
+                  <th scope="col" className="py-1 print:hidden"><span className="sr-only">Acties</span></th>
                 </tr>
               </thead>
               <tbody>
                 {rijen.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-2 text-neutral-600">Geen reservaties.</td>
+                    <td colSpan={7} className="py-2 text-neutral-600">Geen reservaties.</td>
                   </tr>
                 )}
                 {rijen.map((r) => (
@@ -83,7 +86,12 @@ export default async function DagPage({ params }: { params: Promise<{ datum: str
                     <td className="py-1 pr-3">{r.aantal_personen}</td>
                     <td className="py-1 pr-3">{r.menu ? "MENU" : "—"}</td>
                     <td className="py-1 pr-3">{r.telefoon ?? "—"}</td>
-                    <td className="py-1">{r.opmerking ?? ""}</td>
+                    <td className="py-1 pr-3">{r.opmerking ?? ""}</td>
+                    <td className="py-1 print:hidden">
+                      <Link href={`/admin/reservaties/${r.id}#bewerken`} className="underline">
+                        Bewerken
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>

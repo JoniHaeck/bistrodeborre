@@ -60,7 +60,7 @@ export default async function ReservatiePage({ params }: { params: Promise<{ id:
         )}
       </section>
 
-      <section aria-label="Reservatie bewerken" className="rounded-lg border border-neutral-300 bg-white p-4">
+      <section id="bewerken" aria-label="Reservatie bewerken" className="scroll-mt-4 rounded-lg border border-neutral-300 bg-white p-4">
         <h2 className="mb-3 font-semibold">Bewerken</h2>
         <ActieFormulier action={bewerkReservatie.bind(null, r.id)}>
           <ReservatieVelden w={r} />
