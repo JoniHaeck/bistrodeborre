@@ -14,7 +14,15 @@ export function WidgetResizer() {
     const observer = new ResizeObserver(stuur);
     observer.observe(document.body);
     stuur();
-    return () => observer.disconnect();
+    // Escape in de iframe moet ook de popup van de ouderpagina kunnen sluiten.
+    const toets = (e: KeyboardEvent) => {
+      if (e.key === "Escape") window.parent.postMessage({ type: "bistro-widget-sluit" }, "*");
+    };
+    document.addEventListener("keydown", toets);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("keydown", toets);
+    };
   }, []);
   return null;
 }

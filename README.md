@@ -87,6 +87,18 @@ Plaats op de publieke website:
 `data-target="#element"` plaatst de widget in een bestaand element. De iframe past zijn hoogte
 automatisch aan. Rechtstreeks kan ook: `/widget?kleur=%238b8a69&lettertype=Georgia,serif`.
 
+### Als popup
+
+```html
+<script src="https://bistrodeborre.vercel.app/embed.js" data-modus="popup"
+        data-knop-tekst="Reserveer een tafel"></script>
+```
+
+Dit toont een knop die de widget in een popup opent (sluiten met ×, Escape of klik naast de popup).
+Wil je een eigen knop of menu-item gebruiken? Geef het via `data-open=".mijn-knop"` (CSS-selector), of roep
+`window.BistroDeBorre.open()` aan.
+
+
 ## Beheer
 
 Log in via `/admin/login`. Alleen gebruikers met `app_metadata.role = "admin"`
