@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-/** Embedbare widget. Query: ?kleur=%237a1f2b&lettertype=Georgia,serif (overschrijft de instellingen). */
+/** Embedbare widget. Query: ?kleur=%238b8a69&lettertype=Georgia,serif (overschrijft de instellingen). */
 export default function WidgetPage({ searchParams }: PageProps<"/widget">) {
   return (
     <main className="w-full p-4">

@@ -80,12 +80,12 @@ Plaats op de publieke website:
 
 ```html
 <script src="https://bistrodeborre.vercel.app/embed.js"
-        data-kleur="#7a1f2b" data-lettertype="Georgia, serif"></script>
+        data-kleur="#8b8a69" data-lettertype="Georgia, serif"></script>
 ```
 
 `data-kleur` en `data-lettertype` zijn optioneel (standaard komen ze uit de instellingen);
 `data-target="#element"` plaatst de widget in een bestaand element. De iframe past zijn hoogte
-automatisch aan. Rechtstreeks kan ook: `/widget?kleur=%237a1f2b&lettertype=Georgia,serif`.
+automatisch aan. Rechtstreeks kan ook: `/widget?kleur=%238b8a69&lettertype=Georgia,serif`.
 
 ## Beheer
 

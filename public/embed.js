@@ -2,7 +2,7 @@
  * Bistro de Borre — reservatiewidget.
  * Gebruik: <script src="https://bistrodeborre.vercel.app/embed.js"></script>
  * Optionele attributen op de script-tag:
- *   data-kleur="#7a1f2b"          primaire kleur (hex)
+ *   data-kleur="#8b8a69"          primaire kleur (hex)
  *   data-lettertype="Georgia, serif"
  *   data-target="#mijn-element"   plaats de widget in dit element (standaard: direct na de script-tag)
  */

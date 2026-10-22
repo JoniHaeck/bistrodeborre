@@ -38,10 +38,10 @@ ${r.opmerking ? rij("Opmerking", r.opmerking) : ""}
 }
 
 function layout(c: MailContext, inhoud: string) {
-  return `<!doctype html><html lang="nl"><body style="margin:0;background:#f5f5f5;font-family:system-ui,Arial,sans-serif;color:#171717">
+  return `<!doctype html><html lang="nl"><body style="margin:0;background:#f3f3f0;font-family:'Open Sans',Arial,sans-serif;color:#404041">
 <div style="max-width:560px;margin:0 auto;padding:24px">
-<div style="background:#fff;border-radius:8px;padding:24px;border-top:4px solid ${c.kleur ?? "#7a1f2b"}">
-<h1 style="font-size:20px;margin:0 0 16px">${esc(c.restaurantNaam)}</h1>
+<div style="background:#fff;border-radius:5px;padding:24px;border-top:4px solid ${c.kleur ?? "#8b8a69"}">
+<h1 style="font-family:'DM Serif Text',Georgia,serif;font-weight:400;font-size:24px;color:#38372a;margin:0 0 16px">${esc(c.restaurantNaam)}</h1>
 ${inhoud}
 </div></div></body></html>`;
 }

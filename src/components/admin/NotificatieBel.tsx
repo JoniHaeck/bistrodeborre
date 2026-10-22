@@ -132,7 +132,7 @@ export function NotificatieBel() {
         {ongelezen > 0 && (
           <span
             aria-hidden="true"
-            className="absolute -right-2 -top-2 rounded-full bg-[#7a1f2b] px-1.5 text-xs font-bold text-white"
+            className="absolute -right-2 -top-2 rounded-full bg-[#8b8a69] px-1.5 text-xs font-bold text-black"
           >
             {ongelezen}
           </span>
@@ -160,7 +160,7 @@ export function NotificatieBel() {
           <ul className="mt-3 max-h-80 space-y-2 overflow-y-auto">
             {meldingen.length === 0 && <li className="text-sm text-neutral-600">Nog geen meldingen.</li>}
             {meldingen.map((m) => (
-              <li key={m.id} className={`rounded border p-2 text-sm ${m.gelezen ? "border-neutral-200" : "border-[#7a1f2b] bg-red-50"}`}>
+              <li key={m.id} className={`rounded border p-2 text-sm ${m.gelezen ? "border-neutral-200" : "border-[#8b8a69] bg-[#f3f3f0]"}`}>
                 <p className="font-medium">{TYPE_LABEL[m.type]}</p>
                 {m.reservations ? (
                   <Link

@@ -14,7 +14,7 @@ type Props = {
 };
 
 const veldKlasse =
-  "mt-1 block w-full rounded-md border border-neutral-400 bg-white px-3 py-2 text-base text-neutral-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--kleur-primair)]";
+  "mt-1 block w-full rounded-[5px] border border-neutral-400 bg-white px-3 py-2 text-base text-neutral-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--kleur-primair)]";
 const labelKlasse = "block text-sm font-medium text-neutral-900";
 
 export function ReservatieFormulier({ initieleDagen, initieelAantal, maxGroepsgrootte, menuLink }: Props) {
@@ -149,7 +149,7 @@ export function ReservatieFormulier({ initieleDagen, initieelAantal, maxGroepsgr
     <form onSubmit={onSubmit} noValidate className="space-y-6" aria-busy={bezig}>
       <div aria-live="polite" className="min-h-0">
         {melding && (
-          <p role="alert" className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">
+          <p role="alert" className="rounded-[5px] border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">
             {melding}
           </p>
         )}
@@ -207,7 +207,7 @@ export function ReservatieFormulier({ initieleDagen, initieelAantal, maxGroepsgr
                 {lijst.map((s) => (
                   <label
                     key={s.tijdslot}
-                    className="cursor-pointer rounded-md border border-neutral-400 bg-white px-3 py-2 text-sm has-[:checked]:border-[var(--kleur-primair)] has-[:checked]:bg-[var(--kleur-primair)] has-[:checked]:text-white has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--kleur-primair)]"
+                    className="cursor-pointer rounded-[5px] border border-neutral-400 bg-white px-3 py-2 text-sm has-[:checked]:border-[var(--kleur-primair)] has-[:checked]:bg-[var(--kleur-primair)] has-[:checked]:text-[var(--kleur-primair-tekst,#000)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--kleur-primair)]"
                   >
                     <input
                       type="radio"
@@ -229,7 +229,7 @@ export function ReservatieFormulier({ initieleDagen, initieelAantal, maxGroepsgr
 
       {tijdslot && (
         <>
-          <div className="rounded-md border border-neutral-300 bg-neutral-50 p-4">
+          <div className="rounded-[5px] border border-neutral-300 bg-neutral-50 p-4">
             <label className="flex items-start gap-3">
               <input type="checkbox" name="menu" className="mt-1 h-5 w-5 accent-[var(--kleur-primair)]" />
               <span>
@@ -277,7 +277,7 @@ export function ReservatieFormulier({ initieleDagen, initieelAantal, maxGroepsgr
           <button
             type="submit"
             disabled={bezig}
-            className="w-full rounded-md bg-[var(--kleur-primair)] px-4 py-3 text-base font-semibold text-white disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--kleur-primair)]"
+            className="w-full rounded-[5px] bg-[var(--kleur-primair)] px-4 py-3 text-base font-semibold text-[var(--kleur-primair-tekst,#000)] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--kleur-primair)]"
           >
             {bezig ? "Bezig…" : "Reservatie bevestigen"}
           </button>

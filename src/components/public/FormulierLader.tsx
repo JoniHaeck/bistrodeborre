@@ -11,6 +11,17 @@ const LETTERTYPE = /^[\w ,'"-]{1,100}$/;
 export function veiligeKleur(waarde: string | undefined | null, fallback: string) {
   return waarde && KLEUR.test(waarde) ? waarde : fallback;
 }
+/** Zwart of wit, afhankelijk van welke het best leesbaar is op de gekozen kleur. */
+export function tekstOpKleur(hex: string) {
+  const h = hex.replace("#", "");
+  const v = h.length === 3 ? h.split("").map((c) => c + c) : [h.slice(0, 2), h.slice(2, 4), h.slice(4, 6)];
+  const [r, g, b] = v.map((x) => {
+    const c = parseInt(x, 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  const l = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return l > 0.18 ? "#000" : "#fff";
+}
 export function veiligLettertype(waarde: string | undefined | null, fallback: string) {
   return waarde && LETTERTYPE.test(waarde) ? waarde : fallback;
 }
@@ -35,12 +46,14 @@ export async function FormulierLader({ kleur, lettertype }: { kleur?: string; le
   }
 
   const { instellingen } = data;
+  const primair = veiligeKleur(kleur, veiligeKleur(instellingen.widget_primaire_kleur, "#8b8a69"));
   return (
     <div
       style={
         {
-          "--kleur-primair": veiligeKleur(kleur, veiligeKleur(instellingen.widget_primaire_kleur, "#7a1f2b")),
-          fontFamily: veiligLettertype(lettertype, veiligLettertype(instellingen.widget_lettertype, "system-ui, sans-serif")),
+          "--kleur-primair": primair,
+          "--kleur-primair-tekst": tekstOpKleur(primair),
+          fontFamily: veiligLettertype(lettertype, veiligLettertype(instellingen.widget_lettertype, "\"Open Sans\", sans-serif")),
         } as React.CSSProperties
       }
     >

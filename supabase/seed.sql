@@ -10,7 +10,7 @@ insert into public.settings (
 ) values (
   1, 'Bistro de Borre', 15, 8, 10,
   60, 2, 24,
-  true, 'info@bistrodeborre.be', '#7a1f2b', 'system-ui, sans-serif', null
+  true, 'info@bistrodeborre.be', '#8b8a69', '"Open Sans", sans-serif', null
 )
 on conflict (id) do update set
   restaurant_naam = excluded.restaurant_naam;

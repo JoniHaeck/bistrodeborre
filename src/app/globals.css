@@ -1,23 +1,44 @@
 @import "tailwindcss";
 
+@font-face { font-family: "Open Sans"; font-weight: 400; font-style: normal; font-display: swap; src: url("/fonts/OpenSans-Regular.woff2") format("woff2"); }
+@font-face { font-family: "Open Sans"; font-weight: 600; font-style: normal; font-display: swap; src: url("/fonts/OpenSans-SemiBold.woff2") format("woff2"); }
+@font-face { font-family: "Open Sans"; font-weight: 700; font-style: normal; font-display: swap; src: url("/fonts/OpenSans-Bold.woff2") format("woff2"); }
+@font-face { font-family: "DM Serif Text"; font-weight: 400; font-style: normal; font-display: swap; src: url("/fonts/DMSerifText-Regular.woff2") format("woff2"); }
+@font-face { font-family: "DM Serif Text"; font-weight: 400; font-style: italic; font-display: swap; src: url("/fonts/DMSerifText-Italic.woff2") format("woff2"); }
+
+/* Huisstijl bistrodeborre.be */
 :root {
   color-scheme: light;
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #404041;
+  --primair: #8b8a69;
+  --primair-donker: #38372a;
+  --primair-licht: #f3f3f0;
+  --primair-rand: #dcdcd2;
+  --secundair: #dcae8d;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Open Sans", system-ui, sans-serif;
+  --font-serif: "DM Serif Text", Georgia, serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Open Sans", system-ui, sans-serif;
+  line-height: 1.5;
 }
+
+h1, h2, h3 {
+  font-family: "DM Serif Text", Georgia, serif;
+  font-weight: 400;
+  color: var(--primair-donker);
+}
+
+a { color: var(--primair-donker); }
 
 button,
 input,
@@ -28,9 +49,9 @@ textarea {
 
 .btn {
   display: inline-block;
-  border-radius: 0.375rem;
-  background: #7a1f2b;
-  color: #fff;
+  border-radius: 0.3125rem;
+  background: var(--primair);
+  color: #000;
   padding: 0.5rem 0.9rem;
   font-size: 0.9rem;
   font-weight: 600;
@@ -39,10 +60,10 @@ textarea {
 .btn:disabled { opacity: 0.6; cursor: wait; }
 .btn-sec {
   display: inline-block;
-  border-radius: 0.375rem;
-  border: 1px solid #a3a3a3;
+  border-radius: 0.3125rem;
+  border: 1px solid var(--primair);
   background: #fff;
-  color: #171717;
+  color: var(--primair-donker);
   padding: 0.45rem 0.9rem;
   font-size: 0.9rem;
   cursor: pointer;
@@ -52,15 +73,15 @@ textarea {
   display: block;
   width: 100%;
   margin-top: 0.25rem;
-  border-radius: 0.375rem;
-  border: 1px solid #a3a3a3;
+  border-radius: 0.3125rem;
+  border: 1px solid var(--primair);
   background: #fff;
-  color: #171717;
+  color: var(--foreground);
   padding: 0.45rem 0.6rem;
   font-size: 1rem;
 }
 .lbl { display: block; font-size: 0.85rem; font-weight: 500; }
 .btn:focus-visible, .btn-sec:focus-visible, .veld:focus-visible, a:focus-visible {
-  outline: 2px solid #7a1f2b;
+  outline: 2px solid var(--primair-donker);
   outline-offset: 2px;
 }
