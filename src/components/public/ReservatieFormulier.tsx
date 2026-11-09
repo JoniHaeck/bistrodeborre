@@ -7,6 +7,7 @@ type SlotInfo = { tijdslot: string; shift: string };
 type Bevestiging = { datum: string; tijdslot: string; aantal: number; menu: boolean; voornaam: string };
 
 type Props = {
+  slug: string;
   initieleDagen: string[];
   vandaag: string;
   initieelAantal: number;
@@ -16,9 +17,10 @@ type Props = {
 
 const veldKlasse =
   "mt-1 block w-full rounded-[5px] border border-[#8b8a69] bg-white px-3 py-2 text-base text-[#404041] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--kleur-primair)]";
+const api = (slug: string) => `/api/r/${encodeURIComponent(slug)}`;
 const labelKlasse = "block text-sm font-semibold text-[#404041]";
 
-export function ReservatieFormulier({ initieleDagen, vandaag, initieelAantal, maxGroepsgrootte, menuLink }: Props) {
+export function ReservatieFormulier({ slug, initieleDagen, vandaag, initieelAantal, maxGroepsgrootte, menuLink }: Props) {
   const [aantal, setAantal] = useState(initieelAantal);
   const [dagen, setDagen] = useState(initieleDagen);
   const [datum, setDatum] = useState("");
@@ -38,7 +40,7 @@ export function ReservatieFormulier({ initieleDagen, vandaag, initieelAantal, ma
     const id = ++aanvraag.current;
     setLaden(true);
     try {
-      const res = await fetch(`/api/availability?aantal=${nieuwAantal}&datum=${nieuweDatum}`);
+      const res = await fetch(`${api(slug)}/availability?aantal=${nieuwAantal}&datum=${nieuweDatum}`);
       const json = await res.json();
       if (id !== aanvraag.current) return;
       setSlots(res.ok ? json.slots : []);
@@ -55,7 +57,7 @@ export function ReservatieFormulier({ initieleDagen, vandaag, initieelAantal, ma
     const id = ++aanvraag.current;
     setLaden(true);
     try {
-      const res = await fetch(`/api/availability?aantal=${waarde}`);
+      const res = await fetch(`${api(slug)}/availability?aantal=${waarde}`);
       const json = await res.json();
       if (id !== aanvraag.current) return;
       const nieuweDagen: string[] = res.ok ? json.dagen : [];
@@ -65,7 +67,7 @@ export function ReservatieFormulier({ initieleDagen, vandaag, initieelAantal, ma
         setDatum("");
         setSlots([]);
       } else if (datum) {
-        const r = await fetch(`/api/availability?aantal=${waarde}&datum=${datum}`);
+        const r = await fetch(`${api(slug)}/availability?aantal=${waarde}&datum=${datum}`);
         const j = await r.json();
         if (id === aanvraag.current) setSlots(r.ok ? j.slots : []);
       }
@@ -90,7 +92,7 @@ export function ReservatieFormulier({ initieleDagen, vandaag, initieelAantal, ma
     setFouten({});
     setMelding("");
 
-    const res = await fetch("/api/reservations", {
+    const res = await fetch(`${api(slug)}/reservations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

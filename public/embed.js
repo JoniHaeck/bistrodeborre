@@ -1,38 +1,48 @@
 /*
- * Bistro de Borre — reservatiewidget.
- * Gebruik: <script src="https://bistrodeborre.vercel.app/embed.js"></script>
+ * Reservatiewidget.
+ * Gebruik: <script src="https://<domein>/embed.js" data-restaurant="mijn-restaurant"></script>
+ * Verplicht:
+ *   data-restaurant="slug"        het restaurant (zoals in /slug)
  * Optionele attributen op de script-tag:
+ *   data-naam="Mijn Restaurant"   titel in de popup-kop (standaard "Reserveren")
  *   data-kleur="#8b8a69"          primaire kleur (hex)
  *   data-lettertype="Georgia, serif"
  *   data-target="#mijn-element"   plaats de widget in dit element (standaard: direct na de script-tag)
  *   data-modus="popup"            toon een knop die de widget in een popup opent
  *   data-knop-tekst="Reserveer een tafel"   tekst van die knop
  *   data-open=".mijn-knop"        gebruik eigen element(en) als knop i.p.v. de standaardknop (met data-modus="popup")
- * Ook beschikbaar: window.BistroDeBorre.open() en .close().
+ * Ook beschikbaar: window.ReservatieWidget.open() en .close() (bij meerdere widgets: de laatste).
  */
 (function () {
   var script = document.currentScript;
   if (!script || !script.src) return;
 
+  var restaurant = script.dataset.restaurant || "";
+  if (!/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/.test(restaurant)) {
+    console.error("Reservatiewidget: voeg data-restaurant=\"<slug>\" toe aan de script-tag.");
+    return;
+  }
+  var naam = script.dataset.naam || "Reserveren";
   var origin = new URL(script.src).origin;
   var params = new URLSearchParams();
   if (script.dataset.kleur) params.set("kleur", script.dataset.kleur);
   if (script.dataset.lettertype) params.set("lettertype", script.dataset.lettertype);
   var query = params.toString();
-  var src = origin + "/widget" + (query ? "?" + query : "");
+  var src = origin + "/w/" + restaurant + (query ? "?" + query : "");
   var kleur = /^#[0-9a-fA-F]{3,8}$/.test(script.dataset.kleur || "") ? script.dataset.kleur : "#8b8a69";
 
+  var sluitFn = null;
   var iframe = document.createElement("iframe");
-  iframe.title = "Reserveren bij Bistro de Borre";
+  iframe.title = naam === "Reserveren" ? "Reserveren" : "Reserveren bij " + naam;
   iframe.setAttribute("scrolling", "no");
 
   window.addEventListener("message", function (event) {
     if (event.origin !== origin || event.source !== iframe.contentWindow) return;
     var data = event.data;
-    if (data && data.type === "bistro-widget-hoogte" && typeof data.hoogte === "number") {
+    if (data && data.type === "reservatie-widget-hoogte" && typeof data.hoogte === "number") {
       iframe.style.height = Math.ceil(data.hoogte) + "px";
     }
-    if (data && data.type === "bistro-widget-sluit" && window.BistroDeBorre) window.BistroDeBorre.close();
+    if (data && data.type === "reservatie-widget-sluit" && sluitFn) sluitFn();
   });
 
   if (script.dataset.modus !== "popup") {
@@ -52,14 +62,14 @@
   var dialoog = document.createElement("div");
   dialoog.setAttribute("role", "dialog");
   dialoog.setAttribute("aria-modal", "true");
-  dialoog.setAttribute("aria-label", "Reserveren bij Bistro de Borre");
+  dialoog.setAttribute("aria-label", iframe.title);
   dialoog.style.cssText =
     "position:relative;max-width:520px;margin:0 auto;background:#fff;border-radius:5px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.35)";
   var kop = document.createElement("div");
   kop.style.cssText =
     "display:flex;align-items:center;justify-content:space-between;padding:12px 12px 12px 20px;background:" + kleur +
     ";color:#000;font:400 22px/1.2 'DM Serif Text',Georgia,serif";
-  kop.textContent = "Bistro de Borre";
+  kop.textContent = naam;
   var sluit = document.createElement("button");
   sluit.type = "button";
   sluit.setAttribute("aria-label", "Sluiten");
@@ -101,7 +111,8 @@
     if (e.key === "Escape" && overlay.style.display === "block") close();
   });
 
-  window.BistroDeBorre = { open: open, close: close };
+  sluitFn = close;
+  window.ReservatieWidget = { open: open, close: close };
 
   var eigen = script.dataset.open ? document.querySelectorAll(script.dataset.open) : [];
   if (eigen.length) {

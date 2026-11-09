@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import { ReservatieFormulier } from "@/components/public/ReservatieFormulier";
 import { getBeschikbareDagen } from "@/lib/availability";
 import { laadAvailabilityContext, laadPubliekeInstellingen } from "@/lib/availability-data";
-import { standaardRestaurant } from "@/lib/server/restaurant";
+import type { Restaurant } from "@/lib/server/restaurant";
 
 const STANDAARD_AANTAL = 2;
 const KLEUR = /^#[0-9a-fA-F]{6}$/;
@@ -29,11 +29,18 @@ export function veiligLettertype(waarde: string | undefined | null, fallback: st
 }
 
 /** Laadt beschikbaarheid + instellingen en toont het formulier. Optioneel met stijl-overrides (widget). */
-export async function FormulierLader({ kleur, lettertype }: { kleur?: string; lettertype?: string }) {
+export async function FormulierLader({
+  restaurant,
+  kleur,
+  lettertype,
+}: {
+  restaurant: Restaurant;
+  kleur?: string;
+  lettertype?: string;
+}) {
   await connection();
   let data;
   try {
-    const restaurant = await standaardRestaurant();
     const [ctx, instellingen] = await Promise.all([
       laadAvailabilityContext(restaurant.id),
       laadPubliekeInstellingen(restaurant.id),
@@ -64,6 +71,7 @@ export async function FormulierLader({ kleur, lettertype }: { kleur?: string; le
       }
     >
       <ReservatieFormulier
+        slug={restaurant.slug}
         initieleDagen={data.dagen}
         vandaag={vandaagInBrussel()}
         initieelAantal={STANDAARD_AANTAL}

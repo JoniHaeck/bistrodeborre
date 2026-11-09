@@ -169,7 +169,17 @@ Oorspronkelijk plan:
 - **Isolatietests** (vitest tegen lokale Supabase): gebruiker van restaurant A kan B niet lezen,
   wijzigen of via realtime ontvangen; publieke API van A toont nooit bezetting van B.
 
-### Fase 3: Routing (2 d)
+### Fase 3: Routing (2 d) ✅ klaar (branch `multi-tenant`)
+
+Gedaan: `/{slug}`, `/w/{slug}`, `/annuleren/{token}`, `/api/r/{slug}/...`, beheer onder
+`/app/{slug}` met restaurantkiezer `/app`, login op `/login`, superadmin-pagina `/platform`
+(overzicht, status, restaurant aanmaken, beheerder koppelen; vervangt het script van fase 4b),
+`embed.js` met verplicht `data-restaurant`, redirects voor oude URL's, migratie 0003
+(gereserveerde slugs, `user_id_voor_email`). `standaardRestaurant()` is weg.
+Beperking: een beheerder koppelen kan enkel voor een bestaand account; uitnodigen per mail
+(met wachtwoord instellen) volgt bij de onboarding (fase 5).
+
+Oorspronkelijk plan:
 - Routes verplaatsen volgens de tabel hierboven; restaurant opzoeken op slug (gecachet), 404 bij
   onbekende slug, nette melding als het abonnement niet actief is.
 - `embed.js` herschrijven: verplicht `data-restaurant="slug"`, berichten `<product>-widget-hoogte` /

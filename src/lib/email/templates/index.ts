@@ -20,7 +20,7 @@ const esc = (s: string) =>
 
 const uur = (t: string) => t.slice(0, 5);
 const annuleerLink = (r: MailReservatie, c: MailContext) =>
-  `${c.siteUrl}/reserveren/annuleren/${r.cancel_token}`;
+  `${c.siteUrl}/annuleren/${r.cancel_token}`;
 
 function rij(label: string, waarde: string) {
   return `<tr><td style="padding:4px 16px 4px 0;color:#666">${label}</td><td style="padding:4px 0"><strong>${esc(waarde)}</strong></td></tr>`;

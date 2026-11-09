@@ -35,7 +35,7 @@ function piep() {
   }
 }
 
-export function NotificatieBel({ restaurantId }: { restaurantId: string }) {
+export function NotificatieBel({ restaurantId, basis }: { restaurantId: string; basis: string }) {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [meldingen, setMeldingen] = useState<Melding[]>([]);
@@ -169,7 +169,7 @@ export function NotificatieBel({ restaurantId }: { restaurantId: string }) {
                 <p className="font-medium">{TYPE_LABEL[m.type]}</p>
                 {m.reservations ? (
                   <Link
-                    href={`/admin/reservaties/${m.reservation_id}`}
+                    href={`${basis}/reservaties/${m.reservation_id}`}
                     className="underline"
                     onClick={() => {
                       void markeer(m.id);

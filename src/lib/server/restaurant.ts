@@ -4,8 +4,17 @@ import type { Tables } from "@/types/database";
 
 export type Restaurant = Pick<Tables<"restaurants">, "id" | "slug" | "naam" | "tijdzone" | "status">;
 
+/** Slugs die niet als restaurant gebruikt mogen worden (botsen met routes van de app). */
+export const GERESERVEERDE_SLUGS = [
+  "admin", "annuleren", "api", "app", "login", "logout", "platform", "registreren",
+  "reserveren", "static", "w", "widget", "www", "_next", "favicon.ico",
+] as const;
+
+const SLUG = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;
+
 /** Zoekt een restaurant op slug (server-side, per request gecachet). Null als het niet bestaat. */
 export const laadRestaurantOpSlug = cache(async (slug: string): Promise<Restaurant | null> => {
+  if (!SLUG.test(slug)) return null;
   const { data, error } = await createServiceRoleClient()
     .from("restaurants")
     .select("id, slug, naam, tijdzone, status")
@@ -15,15 +24,11 @@ export const laadRestaurantOpSlug = cache(async (slug: string): Promise<Restaura
   return data;
 });
 
-/**
- * TIJDELIJK (tot fase 3 – routing): de app kent nog geen restaurant in de URL. Tot dan werken
- * boekingspagina, widget en beheer op één restaurant, ingesteld via STANDAARD_RESTAURANT_SLUG.
- */
-export const standaardSlug = () => process.env.STANDAARD_RESTAURANT_SLUG || "bistro-de-borre";
+/** Kunnen gasten online boeken? Een opgezegd restaurant aanvaardt geen nieuwe online boekingen meer. */
+export const isBoekbaar = (r: Restaurant) => r.status !== "opgezegd";
 
-export async function standaardRestaurant(): Promise<Restaurant> {
-  const slug = standaardSlug();
-  const restaurant = await laadRestaurantOpSlug(slug);
-  if (!restaurant) throw new Error(`Restaurant "${slug}" bestaat niet (STANDAARD_RESTAURANT_SLUG).`);
-  return restaurant;
+/** Restaurant voor publieke routes (boekingspagina, widget, publieke API): bestaat én is boekbaar. */
+export async function publiekRestaurant(slug: string): Promise<Restaurant | null> {
+  const r = await laadRestaurantOpSlug(slug);
+  return r && isBoekbaar(r) ? r : null;
 }

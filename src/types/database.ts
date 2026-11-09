@@ -585,6 +585,7 @@ export type Database = {
       }
       is_lid: { Args: { p_restaurant_id: string }; Returns: boolean }
       is_platform_admin: { Args: never; Returns: boolean }
+      user_id_voor_email: { Args: { p_email: string }; Returns: string }
       log_and_notify: {
         Args: {
           p_actie: string

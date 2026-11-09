@@ -8,7 +8,7 @@ const eslintConfig = defineConfig([
   // Multi-tenant veiligheid: het beheer werkt met de sessie-client (RLS per restaurant).
   // De service-role key omzeilt RLS en mag daar dus nooit rechtstreeks gebruikt worden.
   {
-    files: ["src/app/admin/**", "src/app/api/admin/**", "src/components/**"],
+    files: ["src/app/app/**", "src/app/platform/**", "src/app/login/**", "src/app/api/r/*/admin/**", "src/components/**"],
     rules: {
       "no-restricted-imports": [
         "error",

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
-export function DagKiezer({ datum }: { datum: string }) {
+export function DagKiezer({ datum, basis }: { datum: string; basis: string }) {
   const router = useRouter();
   return (
     <label className="flex items-center gap-2 text-sm font-medium">
@@ -11,7 +11,7 @@ export function DagKiezer({ datum }: { datum: string }) {
         type="date"
         value={datum}
         onChange={(e) => {
-          if (e.target.value) router.push(`/admin/dag/${e.target.value}`);
+          if (e.target.value) router.push(`${basis}/dag/${e.target.value}`);
         }}
         className="veld !w-auto"
       />

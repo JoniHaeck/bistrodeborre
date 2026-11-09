@@ -81,34 +81,49 @@ uitgevoerd worden (bv. via de Supabase SQL Editor).
   `reservation_logs`-rij en een `notifications`-rij (voor het live
   meldingensysteem in de admin-backend).
 
+## Routes
+
+| Route | Wat |
+|---|---|
+| `/{slug}` | publieke boekingspagina van een restaurant |
+| `/w/{slug}` | embedbare widget (mag in een iframe op elke site) |
+| `/annuleren/{token}` | annuleerlink uit de bevestigingsmail |
+| `/api/r/{slug}/availability`, `/api/r/{slug}/reservations` | publieke API van de boekingspagina/widget |
+| `/login` | inloggen voor beheerders |
+| `/app` | restaurantkiezer; `/app/{slug}/...` is het beheer van één restaurant |
+| `/platform` | superadmin: alle restaurants, nieuw restaurant, beheerders koppelen, status |
+
+Oude URL's (`/reserveren`, `/widget`, `/admin/...`) verwijzen door naar Bistro de Borre.
+
 ## Widget insluiten
 
-Plaats op de publieke website:
+Plaats op de publieke website (`data-restaurant` is verplicht):
 
 ```html
-<script src="https://bistrodeborre.vercel.app/embed.js"
+<script src="https://bistrodeborre.vercel.app/embed.js" data-restaurant="bistro-de-borre"
         data-kleur="#8b8a69" data-lettertype="Georgia, serif"></script>
 ```
 
 `data-kleur` en `data-lettertype` zijn optioneel (standaard komen ze uit de instellingen);
 `data-target="#element"` plaatst de widget in een bestaand element. De iframe past zijn hoogte
-automatisch aan. Rechtstreeks kan ook: `/widget?kleur=%238b8a69&lettertype=Georgia,serif`.
+automatisch aan. Rechtstreeks kan ook: `/w/bistro-de-borre?kleur=%238b8a69&lettertype=Georgia,serif`.
 
 ### Als popup
 
 ```html
-<script src="https://bistrodeborre.vercel.app/embed.js" data-modus="popup"
-        data-knop-tekst="Reserveer een tafel"></script>
+<script src="https://bistrodeborre.vercel.app/embed.js" data-restaurant="bistro-de-borre"
+        data-naam="Bistro de Borre" data-modus="popup" data-knop-tekst="Reserveer een tafel"></script>
 ```
 
 Dit toont een knop die de widget in een popup opent (sluiten met ×, Escape of klik naast de popup).
 Wil je een eigen knop of menu-item gebruiken? Geef het via `data-open=".mijn-knop"` (CSS-selector), of roep
-`window.BistroDeBorre.open()` aan.
+`window.ReservatieWidget.open()` aan. `data-naam` is de titel in de popup-kop.
 
 
 ## Beheer
 
-Log in via `/admin/login`. Toegang hangt af van een rij in `memberships` (beheerder van één
+Log in via `/login`. Superadmins beheren restaurants en beheerders via `/platform`
+(een account moet wel al bestaan: Supabase > Authentication > Users). Toegang hangt af van een rij in `memberships` (beheerder van één
 restaurant) of in `platform_admins` (superadmin, alle restaurants). Een beheerder aanmaken:
 Supabase > Authentication > Users > gebruiker toevoegen en daarna in de SQL-editor:
 
@@ -138,7 +153,6 @@ insert into platform_admins (user_id) select id from auth.users where email = 'j
    | `SUPABASE_SECRET_KEY` | secret/service_role key (enkel server-side) |
    | `RESEND_API_KEY` | Resend API-key |
    | `EMAIL_FROM` | `Bistro de Borre <reservaties@jouwdomein.be>` |
-   | `STANDAARD_RESTAURANT_SLUG` | tijdelijk: `bistro-de-borre` (tot de routing per restaurant er is) |
    | `CRON_SECRET` | lange willekeurige string; Vercel stuurt die mee als `Authorization: Bearer` |
    | `NEXT_PUBLIC_SITE_URL` | `https://<jouw-domein>` (voor annuleerlinks) |
 
@@ -147,7 +161,7 @@ insert into platform_admins (user_id) select id from auth.users where email = 'j
    Vercel Pro; op Hobby kan enkel dagelijks.
 6. **Resend-domein**: verifieer een domein in Resend en pas `EMAIL_FROM` aan. Zonder
    domein mailt Resend enkel naar het adres van het eigen account.
-7. **Controle**: `/reserveren` en `/widget` laden, `/admin/login` laat je inloggen, een
+7. **Controle**: `/bistro-de-borre` en `/w/bistro-de-borre` laden, `/login` laat je inloggen, een
    testreservatie geeft een mail en een melding in de bel.
 8. Als een deploy 404 geeft op nieuwe routes: `vercel deploy --prod --force`.
 

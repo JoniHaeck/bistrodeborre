@@ -8,7 +8,7 @@ export function WidgetResizer() {
     if (window.parent === window) return;
     const stuur = () =>
       window.parent.postMessage(
-        { type: "bistro-widget-hoogte", hoogte: document.documentElement.scrollHeight },
+        { type: "reservatie-widget-hoogte", hoogte: document.documentElement.scrollHeight },
         "*",
       );
     const observer = new ResizeObserver(stuur);
@@ -16,7 +16,7 @@ export function WidgetResizer() {
     stuur();
     // Escape in de iframe moet ook de popup van de ouderpagina kunnen sluiten.
     const toets = (e: KeyboardEvent) => {
-      if (e.key === "Escape") window.parent.postMessage({ type: "bistro-widget-sluit" }, "*");
+      if (e.key === "Escape") window.parent.postMessage({ type: "reservatie-widget-sluit" }, "*");
     };
     document.addEventListener("keydown", toets);
     return () => {

@@ -225,6 +225,25 @@ describe("RLS: zonder lidmaatschap en anoniem", () => {
   });
 });
 
+describe("platformbeheer (migratie 0003)", () => {
+  it("weigert gereserveerde slugs", async () => {
+    await als("service_role");
+    for (const slug of ["app", "api", "platform", "login", "widget"]) {
+      await expect(db.query("insert into restaurants (slug, naam) values ($1, 'x')", [slug])).rejects.toThrow(/niet_gereserveerd/);
+    }
+    // Te kort: al geweigerd door de slug-regex.
+    await expect(db.query("insert into restaurants (slug, naam) values ('w', 'x')")).rejects.toThrow(/check constraint/);
+  });
+
+  it("user_id_voor_email zoekt hoofdletterongevoelig, enkel voor de service-role", async () => {
+    await als("service_role");
+    const [{ id }] = await rijen<{ id: string }>("select user_id_voor_email('  Eigenaar@A.be ') as id");
+    expect(id).toBe(LID_A);
+    await als("authenticated", SUPERADMIN);
+    await expect(db.query("select user_id_voor_email('eigenaar@a.be')")).rejects.toThrow(/permission denied/);
+  });
+});
+
 describe("verwijderen", () => {
   it("een restaurant verwijderen ruimt al zijn data op", async () => {
     await als("service_role");

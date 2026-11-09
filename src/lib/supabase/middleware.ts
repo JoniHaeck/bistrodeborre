@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 /**
  * Ververst de Supabase-sessie-cookie bij elk request en beveiligt de
- * admin-routes: niet-ingelogde gebruikers worden naar /admin/login gestuurd.
+ * beheerroutes (/app, /platform): niet-ingelogde gebruikers worden naar /login gestuurd.
  * Of iemand een restaurant mag beheren, beslist adminContext() (RLS via memberships).
  */
 export async function updateSession(request: NextRequest) {
@@ -33,10 +33,10 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isAdminRoute = pathname.startsWith("/admin") && pathname !== "/admin/login";
+  const isAdminRoute = /^\/(app|platform)(\/|$)/.test(pathname);
 
   if (isAdminRoute && !user) {
-    const loginUrl = new URL("/admin/login", request.url);
+    const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("volgende", pathname);
     return NextResponse.redirect(loginUrl);
   }
