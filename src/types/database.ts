@@ -512,6 +512,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      controleer_toegang: {
+        Args: { p_restaurant_id: string }
+        Returns: undefined
+      }
       create_reservation: {
         Args: {
           p_aantal_personen: number
@@ -579,8 +583,8 @@ export type Database = {
           widget_primaire_kleur: string
         }[]
       }
-      is_platform_admin: { Args: never; Returns: boolean }
       is_lid: { Args: { p_restaurant_id: string }; Returns: boolean }
+      is_platform_admin: { Args: never; Returns: boolean }
       log_and_notify: {
         Args: {
           p_actie: string
