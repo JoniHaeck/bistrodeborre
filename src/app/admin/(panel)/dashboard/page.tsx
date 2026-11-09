@@ -2,7 +2,7 @@ import { connection } from "next/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Bezetting } from "@/components/admin/Bezetting";
-import { adminDb } from "@/lib/admin/auth";
+import { adminContext } from "@/lib/admin/auth";
 import { laadDagContext } from "@/lib/admin/data";
 import { getSlotsVoorDatum, voegDagenToe } from "@/lib/availability";
 import { formatDatum, formatTijdstip } from "@/lib/format";
@@ -18,7 +18,7 @@ const TYPE_LABEL: Record<string, string> = {
 
 export default async function DashboardPage() {
   await connection();
-  const db = await adminDb();
+  const { db, restaurant } = await adminContext();
   const vandaag = vandaagInBrussel();
   const dagen = [vandaag, voegDagenToe(vandaag, 1)];
 
@@ -26,8 +26,8 @@ export default async function DashboardPage() {
     Promise.all(
       dagen.map(async (datum) => {
         const [ctx, res] = await Promise.all([
-          laadDagContext(datum),
-          db.from("reservations").select("aantal_personen, menu").eq("datum", datum).neq("status", "geannuleerd"),
+          laadDagContext(restaurant.id, datum),
+          db.from("reservations").select("aantal_personen, menu").eq("restaurant_id", restaurant.id).eq("datum", datum).neq("status", "geannuleerd"),
         ]);
         const rijen = res.data ?? [];
         return {
@@ -42,6 +42,7 @@ export default async function DashboardPage() {
     db
       .from("notifications")
       .select("id, type, gelezen, created_at, reservation_id, reservations(voornaam, naam, datum, tijdslot, aantal_personen)")
+      .eq("restaurant_id", restaurant.id)
       .order("created_at", { ascending: false })
       .limit(8),
   ]);

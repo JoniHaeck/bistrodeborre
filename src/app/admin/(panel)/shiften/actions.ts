@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ActieState } from "@/components/admin/ActieFormulier";
-import { adminDb } from "@/lib/admin/auth";
+import { adminContext } from "@/lib/admin/auth";
 import { weekdagVan } from "@/lib/availability";
 import { vandaagInBrussel } from "@/lib/time";
 
@@ -25,7 +25,7 @@ const shiftSchema = z.object({
 const nietGeannuleerd = "bevestigd,aangekomen,no_show";
 
 export async function bewaarShift(formData: FormData): Promise<ActieState> {
-  const db = await adminDb();
+  const { db, restaurant } = await adminContext();
   const parsed = shiftSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fout: parsed.error.issues[0]?.message ?? "Controleer de gegevens." };
   const s = parsed.data;
@@ -33,10 +33,11 @@ export async function bewaarShift(formData: FormData): Promise<ActieState> {
 
   if (s.id && s.bevestig !== "ja") {
     const [{ data: inst }, { data: toekomst }] = await Promise.all([
-      db.from("settings").select("standaard_capaciteit").eq("id", 1).single(),
+      db.from("settings").select("standaard_capaciteit").eq("restaurant_id", restaurant.id).single(),
       db
         .from("reservations")
         .select("datum, tijdslot, aantal_personen")
+        .eq("restaurant_id", restaurant.id)
         .eq("shift_template_id", s.id)
         .gte("datum", vandaagInBrussel())
         .in("status", nietGeannuleerd.split(",") as never),
@@ -64,6 +65,7 @@ export async function bewaarShift(formData: FormData): Promise<ActieState> {
   }
 
   const rij = {
+    restaurant_id: restaurant.id,
     weekdag: s.weekdag,
     naam: s.naam,
     start_tijd: s.start_tijd,
@@ -71,7 +73,7 @@ export async function bewaarShift(formData: FormData): Promise<ActieState> {
     capaciteit_per_slot: s.capaciteit,
     actief: s.actief,
   };
-  const { error } = s.id ? await db.from("shift_templates").update(rij).eq("id", s.id) : await db.from("shift_templates").insert(rij);
+  const { error } = s.id ? await db.from("shift_templates").update(rij).eq("restaurant_id", restaurant.id).eq("id", s.id) : await db.from("shift_templates").insert(rij);
   if (error) {
     console.error("Shift opslaan mislukt", error);
     return { fout: "Opslaan mislukt." };
@@ -81,8 +83,8 @@ export async function bewaarShift(formData: FormData): Promise<ActieState> {
 }
 
 export async function verwijderShift(id: string): Promise<ActieState> {
-  const db = await adminDb();
-  const { error } = await db.from("shift_templates").delete().eq("id", id);
+  const { db, restaurant } = await adminContext();
+  const { error } = await db.from("shift_templates").delete().eq("restaurant_id", restaurant.id).eq("id", id);
   if (error) {
     return { fout: "Verwijderen kan niet: er zijn reservaties aan deze shift gekoppeld. Zet de shift op inactief." };
   }
@@ -101,7 +103,7 @@ const uitzonderingSchema = z.object({
 });
 
 export async function maakUitzondering(formData: FormData): Promise<ActieState> {
-  const db = await adminDb();
+  const { db, restaurant } = await adminContext();
   const parsed = uitzonderingSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fout: parsed.error.issues[0]?.message ?? "Controleer de gegevens." };
   const u = parsed.data;
@@ -111,6 +113,7 @@ export async function maakUitzondering(formData: FormData): Promise<ActieState> 
     const { data } = await db
       .from("shift_templates")
       .select("id")
+      .eq("restaurant_id", restaurant.id)
       .eq("naam", u.shift)
       .eq("weekdag", weekdagVan(u.datum))
       .maybeSingle();
@@ -134,6 +137,7 @@ export async function maakUitzondering(formData: FormData): Promise<ActieState> 
     let q = db
       .from("reservations")
       .select("tijdslot, aantal_personen")
+      .eq("restaurant_id", restaurant.id)
       .eq("datum", u.datum)
       .in("status", nietGeannuleerd.split(",") as never);
     if (shiftId) q = q.eq("shift_template_id", shiftId);
@@ -155,6 +159,7 @@ export async function maakUitzondering(formData: FormData): Promise<ActieState> 
   }
 
   const { error } = await db.from("date_exceptions").insert({
+    restaurant_id: restaurant.id,
     datum: u.datum,
     shift_template_id: shiftId,
     gesloten: u.soort === "gesloten",
@@ -172,8 +177,8 @@ export async function maakUitzondering(formData: FormData): Promise<ActieState> 
 }
 
 export async function verwijderUitzondering(id: string): Promise<ActieState> {
-  const db = await adminDb();
-  const { error } = await db.from("date_exceptions").delete().eq("id", id);
+  const { db, restaurant } = await adminContext();
+  const { error } = await db.from("date_exceptions").delete().eq("restaurant_id", restaurant.id).eq("id", id);
   if (error) return { fout: "Verwijderen mislukt." };
   revalidatePath("/admin/shiften");
   return { ok: "Uitzondering verwijderd." };

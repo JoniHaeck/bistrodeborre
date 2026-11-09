@@ -3,7 +3,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service";
 import { bevestigingMail, herinneringMail, restaurantMelding, type MailContext, type MailReservatie } from "./templates";
 
 type Soort = "bevestiging" | "melding" | "herinnering";
-type ReservatieRij = MailReservatie & { id: string };
+type ReservatieRij = MailReservatie & { id: string; restaurant_id: string };
 
 const FROM = () => process.env.EMAIL_FROM ?? "Bistro de Borre <onboarding@resend.dev>";
 
@@ -11,20 +11,24 @@ export function siteUrl() {
   return (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 }
 
-export async function laadMailInstellingen() {
-  const { data } = await createServiceRoleClient()
-    .from("settings")
-    .select("restaurant_naam, notificatie_email, widget_primaire_kleur, herinneringen_actief, herinnering_uren_vooraf")
-    .eq("id", 1)
-    .single();
+export async function laadMailInstellingen(restaurantId: string) {
+  const db = createServiceRoleClient();
+  const [{ data: restaurant }, { data }] = await Promise.all([
+    db.from("restaurants").select("naam").eq("id", restaurantId).single(),
+    db
+      .from("settings")
+      .select("notificatie_email, widget_primaire_kleur, herinneringen_actief, herinnering_uren_vooraf")
+      .eq("restaurant_id", restaurantId)
+      .single(),
+  ]);
   const ctx: MailContext = {
-    restaurantNaam: data?.restaurant_naam ?? "Bistro de Borre",
+    restaurantNaam: restaurant?.naam ?? "",
     siteUrl: siteUrl(),
     kleur: data?.widget_primaire_kleur,
   };
   return {
     ctx,
-    notificatieEmail: data?.notificatie_email || process.env.NOTIFICATION_EMAIL || null,
+    notificatieEmail: data?.notificatie_email || null,
     herinneringenActief: data?.herinneringen_actief ?? true,
     herinneringUren: data?.herinnering_uren_vooraf ?? 24,
   };
@@ -33,7 +37,7 @@ export async function laadMailInstellingen() {
 /** Verstuurt één mail en schrijft het resultaat naar het logboek van de reservatie. Gooit nooit. */
 async function verstuur(
   soort: Soort,
-  reservationId: string,
+  r: ReservatieRij,
   aan: string,
   mail: { subject: string; html: string; text: string },
 ): Promise<boolean> {
@@ -56,7 +60,8 @@ async function verstuur(
   await createServiceRoleClient()
     .from("reservation_logs")
     .insert({
-      reservation_id: reservationId,
+      restaurant_id: r.restaurant_id,
+      reservation_id: r.id,
       actie: fout ? `mail_${soort}_mislukt` : `mail_${soort}`,
       details: { aan, ...(fout ? { fout } : {}) },
     });
@@ -65,17 +70,20 @@ async function verstuur(
 
 /** Bevestiging naar de gast + melding naar het restaurant. */
 export async function stuurNieuweReservatieMails(r: ReservatieRij) {
-  const { ctx, notificatieEmail } = await laadMailInstellingen();
+  const { ctx, notificatieEmail } = await laadMailInstellingen(r.restaurant_id);
   await Promise.all([
-    verstuur("bevestiging", r.id, r.email, bevestigingMail(r, ctx)),
-    notificatieEmail ? verstuur("melding", r.id, notificatieEmail, restaurantMelding(r, ctx)) : null,
+    verstuur("bevestiging", r, r.email, bevestigingMail(r, ctx)),
+    notificatieEmail ? verstuur("melding", r, notificatieEmail, restaurantMelding(r, ctx)) : null,
   ]);
 }
 
-/** Verstuurt een herinnering en markeert reminder_sent_at. Bij een fout wordt de markering teruggezet (tenzij handmatig). */
+/**
+ * Verstuurt een herinnering en markeert reminder_sent_at. Bij een fout wordt de markering teruggezet (tenzij handmatig).
+ * Een meegegeven `ctx` moet bij het restaurant van de reservatie horen.
+ */
 export async function stuurHerinnering(r: ReservatieRij, ctx?: MailContext): Promise<boolean> {
-  const context = ctx ?? (await laadMailInstellingen()).ctx;
-  const ok = await verstuur("herinnering", r.id, r.email, herinneringMail(r, context));
+  const context = ctx ?? (await laadMailInstellingen(r.restaurant_id)).ctx;
+  const ok = await verstuur("herinnering", r, r.email, herinneringMail(r, context));
   if (ok) {
     await createServiceRoleClient()
       .from("reservations")

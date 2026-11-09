@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { ActieFormulier } from "@/components/admin/ActieFormulier";
 import { ReservatieVelden } from "@/components/admin/ReservatieVelden";
-import { adminDb } from "@/lib/admin/auth";
+import { adminContext } from "@/lib/admin/auth";
 import { LOG_LABEL, STATUSSEN, STATUS_LABEL } from "@/lib/admin/data";
 import { formatDatum, formatTijdstip } from "@/lib/format";
 import { bewerkReservatie, stuurHerinneringAdmin, zetStatus } from "../actions";
@@ -12,13 +12,13 @@ import { bewerkReservatie, stuurHerinneringAdmin, zetStatus } from "../actions";
 export const metadata: Metadata = { title: "Reservatie — Bistro de Borre" };
 
 export default async function ReservatiePage({ params }: { params: Promise<{ id: string }> }) {
-  const db = await adminDb();
+  const { db, restaurant } = await adminContext();
   const { id } = await params;
   if (!z.string().uuid().safeParse(id).success) notFound();
 
   const [{ data: r }, { data: logs }] = await Promise.all([
-    db.from("reservations").select("*").eq("id", id).single(),
-    db.from("reservation_logs").select("*").eq("reservation_id", id).order("created_at", { ascending: false }),
+    db.from("reservations").select("*").eq("restaurant_id", restaurant.id).eq("id", id).maybeSingle(),
+    db.from("reservation_logs").select("*").eq("restaurant_id", restaurant.id).eq("reservation_id", id).order("created_at", { ascending: false }),
   ]);
   if (!r) notFound();
 

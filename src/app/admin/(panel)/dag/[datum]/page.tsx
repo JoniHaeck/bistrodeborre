@@ -5,7 +5,7 @@ import { ActieFormulier } from "@/components/admin/ActieFormulier";
 import { Bezetting } from "@/components/admin/Bezetting";
 import { DagKiezer } from "@/components/admin/DagKiezer";
 import { PrintKnop } from "@/components/admin/PrintKnop";
-import { adminDb } from "@/lib/admin/auth";
+import { adminContext } from "@/lib/admin/auth";
 import { STATUS_LABEL, laadDagContext } from "@/lib/admin/data";
 import { getSlotsVoorDatum, voegDagenToe } from "@/lib/availability";
 import { formatDatum } from "@/lib/format";
@@ -14,13 +14,13 @@ import { stuurShiftHerinneringen } from "../../reservaties/actions";
 export const metadata: Metadata = { title: "Dagoverzicht — Bistro de Borre" };
 
 export default async function DagPage({ params }: { params: Promise<{ datum: string }> }) {
-  const db = await adminDb();
+  const { db, restaurant } = await adminContext();
   const { datum } = await params;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(datum) || Number.isNaN(Date.parse(datum))) notFound();
 
   const [ctx, { data }] = await Promise.all([
-    laadDagContext(datum),
-    db.from("reservations").select("*").eq("datum", datum).neq("status", "geannuleerd").order("tijdslot").order("naam"),
+    laadDagContext(restaurant.id, datum),
+    db.from("reservations").select("*").eq("restaurant_id", restaurant.id).eq("datum", datum).neq("status", "geannuleerd").order("tijdslot").order("naam"),
   ]);
   const slots = getSlotsVoorDatum(datum, ctx);
   const reservaties = data ?? [];

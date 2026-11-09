@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getBeschikbareDagen, getBeschikbareSlots } from "@/lib/availability";
 import { laadAvailabilityContext } from "@/lib/availability-data";
+import { standaardRestaurant } from "@/lib/server/restaurant";
 
 const query = z.object({
   aantal: z.coerce.number().int().min(1).max(100),
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
   const { aantal, datum } = parsed.data;
 
   try {
-    const ctx = await laadAvailabilityContext();
+    const ctx = await laadAvailabilityContext((await standaardRestaurant()).id);
     if (aantal > ctx.instellingen.max_groepsgrootte) {
       return NextResponse.json(
         { fout: "groep_te_groot", maxGroepsgrootte: ctx.instellingen.max_groepsgrootte },

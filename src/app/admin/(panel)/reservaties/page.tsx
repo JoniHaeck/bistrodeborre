@@ -1,7 +1,7 @@
 import { connection } from "next/server";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { adminDb } from "@/lib/admin/auth";
+import { adminContext } from "@/lib/admin/auth";
 import { STATUSSEN, STATUS_LABEL, type Status } from "@/lib/admin/data";
 import { formatDatum } from "@/lib/format";
 import { vandaagInBrussel } from "@/lib/time";
@@ -13,7 +13,7 @@ const eerste = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : 
 
 export default async function ReservatiesPage({ searchParams }: { searchParams: Params }) {
   await connection();
-  const db = await adminDb();
+  const { db, restaurant } = await adminContext();
   const p = await searchParams;
   const van = eerste(p.van) || vandaagInBrussel();
   const tot = eerste(p.tot);
@@ -23,7 +23,7 @@ export default async function ReservatiesPage({ searchParams }: { searchParams: 
   // Tekens met betekenis in PostgREST-filters verwijderen.
   const q = eerste(p.q).replace(/[,()*%\\]/g, " ").trim().slice(0, 100);
 
-  let query = db.from("reservations").select("*").order("datum").order("tijdslot").limit(500);
+  let query = db.from("reservations").select("*").eq("restaurant_id", restaurant.id).order("datum").order("tijdslot").limit(500);
   if (/^\d{4}-\d{2}-\d{2}$/.test(van)) query = query.gte("datum", van);
   if (/^\d{4}-\d{2}-\d{2}$/.test(tot)) query = query.lte("datum", tot);
   if ((STATUSSEN as readonly string[]).includes(status)) query = query.eq("status", status as Status);
@@ -34,13 +34,13 @@ export default async function ReservatiesPage({ searchParams }: { searchParams: 
     query = query.or(`voornaam.ilike.${term},naam.ilike.${term},email.ilike.${term},telefoon.ilike.${term}`);
   }
   if (shift) {
-    const { data: ids } = await db.from("shift_templates").select("id").eq("naam", shift);
+    const { data: ids } = await db.from("shift_templates").select("id").eq("restaurant_id", restaurant.id).eq("naam", shift);
     query = query.in("shift_template_id", (ids ?? []).map((s) => s.id));
   }
 
   const [{ data: reservaties }, { data: shiftNamen }] = await Promise.all([
     query,
-    db.from("shift_templates").select("naam"),
+    db.from("shift_templates").select("naam").eq("restaurant_id", restaurant.id),
   ]);
   const namen = [...new Set((shiftNamen ?? []).map((s) => s.naam))];
 

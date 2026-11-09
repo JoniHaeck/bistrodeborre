@@ -1,7 +1,7 @@
 import { connection } from "next/server";
 import type { Metadata } from "next";
 import { ActieFormulier } from "@/components/admin/ActieFormulier";
-import { adminDb } from "@/lib/admin/auth";
+import { adminContext } from "@/lib/admin/auth";
 import { WEEKDAGEN } from "@/lib/admin/data";
 import { genereerTijdsloten } from "@/lib/availability";
 import { formatDatum } from "@/lib/format";
@@ -58,12 +58,12 @@ function ShiftVelden({ s }: { s: ShiftRij }) {
 
 export default async function ShiftenPage() {
   await connection();
-  const db = await adminDb();
+  const { db, restaurant } = await adminContext();
   const vandaag = vandaagInBrussel();
   const [{ data: shiften }, { data: uitzonderingen }, { data: inst }] = await Promise.all([
-    db.from("shift_templates").select("*").order("start_tijd"),
-    db.from("date_exceptions").select("*").gte("datum", vandaag).order("datum"),
-    db.from("settings").select("standaard_capaciteit, slot_minuten").eq("id", 1).single(),
+    db.from("shift_templates").select("*").eq("restaurant_id", restaurant.id).order("start_tijd"),
+    db.from("date_exceptions").select("*").eq("restaurant_id", restaurant.id).gte("datum", vandaag).order("datum"),
+    db.from("settings").select("standaard_capaciteit, slot_minuten").eq("restaurant_id", restaurant.id).single(),
   ]);
   const standaard = inst?.standaard_capaciteit ?? 8;
   const stap = inst?.slot_minuten ?? 15;

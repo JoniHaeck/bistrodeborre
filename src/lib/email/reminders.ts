@@ -4,19 +4,49 @@ import { laadMailInstellingen, stuurHerinnering } from "./send";
 
 const UUR = 3_600_000;
 
+type Resultaat = { verstuurd: number; mislukt: number };
+
 /**
- * Verstuurt herinneringen voor bevestigde reservaties die binnen het ingestelde aantal uren beginnen.
- * Elke reservatie wordt eerst atomair "geclaimd" via reminder_sent_at, zodat gelijktijdige runs nooit dubbel versturen.
+ * Verstuurt herinneringen voor alle restaurants met herinneringen aan. Een fout bij één restaurant
+ * stopt de andere niet.
  */
 export async function verwerkHerinneringen(nu: Date = new Date()) {
-  const { ctx, herinneringenActief, herinneringUren } = await laadMailInstellingen();
-  if (!herinneringenActief) return { actief: false, verstuurd: 0, mislukt: 0 };
+  const { data: restaurants, error } = await createServiceRoleClient()
+    .from("settings")
+    .select("restaurant_id")
+    .eq("herinneringen_actief", true);
+  if (error) throw error;
+
+  const totaal: Resultaat & { restaurants: number; fouten: number } = { verstuurd: 0, mislukt: 0, restaurants: 0, fouten: 0 };
+  for (const { restaurant_id } of restaurants ?? []) {
+    try {
+      const r = await verwerkHerinneringenVoorRestaurant(restaurant_id, nu);
+      totaal.verstuurd += r.verstuurd;
+      totaal.mislukt += r.mislukt;
+      totaal.restaurants++;
+    } catch (e) {
+      totaal.fouten++;
+      console.error(`Herinneringen mislukt voor restaurant ${restaurant_id}`, e);
+    }
+  }
+  return totaal;
+}
+
+/**
+ * Verstuurt herinneringen voor bevestigde reservaties van één restaurant die binnen het ingestelde
+ * aantal uren beginnen. Elke reservatie wordt eerst atomair "geclaimd" via reminder_sent_at, zodat
+ * gelijktijdige runs nooit dubbel versturen.
+ */
+export async function verwerkHerinneringenVoorRestaurant(restaurantId: string, nu: Date = new Date()): Promise<Resultaat> {
+  const { ctx, herinneringenActief, herinneringUren } = await laadMailInstellingen(restaurantId);
+  if (!herinneringenActief) return { verstuurd: 0, mislukt: 0 };
 
   const supabase = createServiceRoleClient();
   const tot = new Date(nu.getTime() + (herinneringUren + 24) * UUR);
   const { data, error } = await supabase
     .from("reservations")
     .select("*")
+    .eq("restaurant_id", restaurantId)
     .eq("status", "bevestigd")
     .is("reminder_sent_at", null)
     .gte("datum", vandaagInBrussel(nu))
@@ -46,5 +76,5 @@ export async function verwerkHerinneringen(nu: Date = new Date()) {
       await supabase.from("reservations").update({ reminder_sent_at: null }).eq("id", r.id);
     }
   }
-  return { actief: true, verstuurd, mislukt };
+  return { verstuurd, mislukt };
 }

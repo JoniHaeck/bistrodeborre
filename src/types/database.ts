@@ -24,6 +24,7 @@ export type Database = {
           gesloten: boolean
           id: string
           opmerking: string | null
+          restaurant_id: string
           shift_template_id: string | null
           updated_at: string
         }
@@ -36,6 +37,7 @@ export type Database = {
           gesloten?: boolean
           id?: string
           opmerking?: string | null
+          restaurant_id: string
           shift_template_id?: string | null
           updated_at?: string
         }
@@ -48,15 +50,52 @@ export type Database = {
           gesloten?: boolean
           id?: string
           opmerking?: string | null
+          restaurant_id?: string
           shift_template_id?: string | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "date_exceptions_shift_template_id_fkey"
-            columns: ["shift_template_id"]
+            foreignKeyName: "date_exceptions_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "date_exceptions_restaurant_id_shift_template_id_fkey"
+            columns: ["restaurant_id", "shift_template_id"]
             isOneToOne: false
             referencedRelation: "shift_templates"
+            referencedColumns: ["restaurant_id", "id"]
+          },
+        ]
+      }
+      memberships: {
+        Row: {
+          created_at: string
+          restaurant_id: string
+          rol: Database["public"]["Enums"]["lid_rol"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          restaurant_id: string
+          rol?: Database["public"]["Enums"]["lid_rol"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          restaurant_id?: string
+          rol?: Database["public"]["Enums"]["lid_rol"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memberships_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
             referencedColumns: ["id"]
           },
         ]
@@ -67,6 +106,7 @@ export type Database = {
           gelezen: boolean
           id: string
           reservation_id: string | null
+          restaurant_id: string
           type: string
         }
         Insert: {
@@ -74,6 +114,7 @@ export type Database = {
           gelezen?: boolean
           id?: string
           reservation_id?: string | null
+          restaurant_id: string
           type: string
         }
         Update: {
@@ -81,15 +122,23 @@ export type Database = {
           gelezen?: boolean
           id?: string
           reservation_id?: string | null
+          restaurant_id?: string
           type?: string
         }
         Relationships: [
           {
-            foreignKeyName: "notifications_reservation_id_fkey"
-            columns: ["reservation_id"]
+            foreignKeyName: "notifications_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_restaurant_id_reservation_id_fkey"
+            columns: ["restaurant_id", "reservation_id"]
             isOneToOne: false
             referencedRelation: "reservations"
-            referencedColumns: ["id"]
+            referencedColumns: ["restaurant_id", "id"]
           },
         ]
       }
@@ -100,6 +149,7 @@ export type Database = {
           details: Json | null
           id: string
           reservation_id: string
+          restaurant_id: string
         }
         Insert: {
           actie: string
@@ -107,6 +157,7 @@ export type Database = {
           details?: Json | null
           id?: string
           reservation_id: string
+          restaurant_id: string
         }
         Update: {
           actie?: string
@@ -114,14 +165,15 @@ export type Database = {
           details?: Json | null
           id?: string
           reservation_id?: string
+          restaurant_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "reservation_logs_reservation_id_fkey"
-            columns: ["reservation_id"]
+            foreignKeyName: "reservation_logs_restaurant_id_reservation_id_fkey"
+            columns: ["restaurant_id", "reservation_id"]
             isOneToOne: false
             referencedRelation: "reservations"
-            referencedColumns: ["id"]
+            referencedColumns: ["restaurant_id", "id"]
           },
         ]
       }
@@ -132,12 +184,15 @@ export type Database = {
           cancel_token: string
           created_at: string
           datum: string
+          duur_minuten: number | null
           email: string
+          externe_id: string | null
           id: string
           menu: boolean
           naam: string
           opmerking: string | null
           reminder_sent_at: string | null
+          restaurant_id: string
           shift_template_id: string | null
           status: Database["public"]["Enums"]["reservation_status"]
           telefoon: string | null
@@ -151,12 +206,15 @@ export type Database = {
           cancel_token?: string
           created_at?: string
           datum: string
+          duur_minuten?: number | null
           email: string
+          externe_id?: string | null
           id?: string
           menu?: boolean
           naam: string
           opmerking?: string | null
           reminder_sent_at?: string | null
+          restaurant_id: string
           shift_template_id?: string | null
           status?: Database["public"]["Enums"]["reservation_status"]
           telefoon?: string | null
@@ -170,12 +228,15 @@ export type Database = {
           cancel_token?: string
           created_at?: string
           datum?: string
+          duur_minuten?: number | null
           email?: string
+          externe_id?: string | null
           id?: string
           menu?: boolean
           naam?: string
           opmerking?: string | null
           reminder_sent_at?: string | null
+          restaurant_id?: string
           shift_template_id?: string | null
           status?: Database["public"]["Enums"]["reservation_status"]
           telefoon?: string | null
@@ -185,13 +246,83 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "reservations_shift_template_id_fkey"
-            columns: ["shift_template_id"]
+            foreignKeyName: "reservations_restaurant_id_fkey"
+            columns: ["restaurant_id"]
             isOneToOne: false
-            referencedRelation: "shift_templates"
+            referencedRelation: "restaurants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "reservations_restaurant_id_shift_template_id_fkey"
+            columns: ["restaurant_id", "shift_template_id"]
+            isOneToOne: false
+            referencedRelation: "shift_templates"
+            referencedColumns: ["restaurant_id", "id"]
+          },
         ]
+      }
+      restaurants: {
+        Row: {
+          created_at: string
+          email: string | null
+          gemeente: string | null
+          google_place_id: string | null
+          id: string
+          land: string
+          lat: number | null
+          lng: number | null
+          naam: string
+          postcode: string | null
+          proef_tot: string | null
+          slug: string
+          status: string
+          straat: string | null
+          telefoon: string | null
+          tijdzone: string
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          gemeente?: string | null
+          google_place_id?: string | null
+          id?: string
+          land?: string
+          lat?: number | null
+          lng?: number | null
+          naam: string
+          postcode?: string | null
+          proef_tot?: string | null
+          slug: string
+          status?: string
+          straat?: string | null
+          telefoon?: string | null
+          tijdzone?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          gemeente?: string | null
+          google_place_id?: string | null
+          id?: string
+          land?: string
+          lat?: number | null
+          lng?: number | null
+          naam?: string
+          postcode?: string | null
+          proef_tot?: string | null
+          slug?: string
+          status?: string
+          straat?: string | null
+          telefoon?: string | null
+          tijdzone?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
       }
       settings: {
         Row: {
@@ -199,14 +330,15 @@ export type Database = {
           created_at: string
           herinnering_uren_vooraf: number
           herinneringen_actief: boolean
-          id: number
+          logo_url: string | null
           max_groepsgrootte: number
           menu_link: string | null
           min_voorboekingsuren: number
-          notificatie_email: string
-          restaurant_naam: string
+          notificatie_email: string | null
+          restaurant_id: string
           slot_minuten: number
           standaard_capaciteit: number
+          standaard_duur_minuten: number
           updated_at: string
           widget_lettertype: string
           widget_primaire_kleur: string
@@ -216,14 +348,15 @@ export type Database = {
           created_at?: string
           herinnering_uren_vooraf?: number
           herinneringen_actief?: boolean
-          id?: number
+          logo_url?: string | null
           max_groepsgrootte?: number
           menu_link?: string | null
           min_voorboekingsuren?: number
-          notificatie_email?: string
-          restaurant_naam?: string
+          notificatie_email?: string | null
+          restaurant_id: string
           slot_minuten?: number
           standaard_capaciteit?: number
+          standaard_duur_minuten?: number
           updated_at?: string
           widget_lettertype?: string
           widget_primaire_kleur?: string
@@ -233,19 +366,28 @@ export type Database = {
           created_at?: string
           herinnering_uren_vooraf?: number
           herinneringen_actief?: boolean
-          id?: number
+          logo_url?: string | null
           max_groepsgrootte?: number
           menu_link?: string | null
           min_voorboekingsuren?: number
-          notificatie_email?: string
-          restaurant_naam?: string
+          notificatie_email?: string | null
+          restaurant_id?: string
           slot_minuten?: number
           standaard_capaciteit?: number
+          standaard_duur_minuten?: number
           updated_at?: string
           widget_lettertype?: string
           widget_primaire_kleur?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "settings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shift_templates: {
         Row: {
@@ -255,6 +397,7 @@ export type Database = {
           eind_tijd: string
           id: string
           naam: string
+          restaurant_id: string
           start_tijd: string
           updated_at: string
           weekdag: number
@@ -266,6 +409,7 @@ export type Database = {
           eind_tijd: string
           id?: string
           naam: string
+          restaurant_id: string
           start_tijd: string
           updated_at?: string
           weekdag: number
@@ -277,11 +421,20 @@ export type Database = {
           eind_tijd?: string
           id?: string
           naam?: string
+          restaurant_id?: string
           start_tijd?: string
           updated_at?: string
           weekdag?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "shift_templates_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -296,12 +449,15 @@ export type Database = {
           cancel_token: string
           created_at: string
           datum: string
+          duur_minuten: number | null
           email: string
+          externe_id: string | null
           id: string
           menu: boolean
           naam: string
           opmerking: string | null
           reminder_sent_at: string | null
+          restaurant_id: string
           shift_template_id: string | null
           status: Database["public"]["Enums"]["reservation_status"]
           telefoon: string | null
@@ -323,9 +479,11 @@ export type Database = {
           p_capaciteit: number
           p_datum: string
           p_email: string
+          p_externe_id?: string
           p_menu: boolean
           p_naam: string
           p_opmerking: string
+          p_restaurant_id: string
           p_shift_template_id: string
           p_telefoon: string
           p_tijdslot: string
@@ -337,12 +495,15 @@ export type Database = {
           cancel_token: string
           created_at: string
           datum: string
+          duur_minuten: number | null
           email: string
+          externe_id: string | null
           id: string
           menu: boolean
           naam: string
           opmerking: string | null
           reminder_sent_at: string | null
+          restaurant_id: string
           shift_template_id: string | null
           status: Database["public"]["Enums"]["reservation_status"]
           telefoon: string | null
@@ -358,7 +519,7 @@ export type Database = {
         }
       }
       get_bezetting: {
-        Args: { p_tot: string; p_van: string }
+        Args: { p_restaurant_id: string; p_tot: string; p_van: string }
         Returns: {
           aantal_bezet: number
           datum: string
@@ -366,9 +527,10 @@ export type Database = {
         }[]
       }
       get_public_settings: {
-        Args: never
+        Args: { p_restaurant_id: string }
         Returns: {
           boekingshorizon_dagen: number
+          logo_url: string
           max_groepsgrootte: number
           menu_link: string
           restaurant_naam: string
@@ -377,6 +539,7 @@ export type Database = {
           widget_primaire_kleur: string
         }[]
       }
+      is_lid: { Args: { p_restaurant_id: string }; Returns: boolean }
       log_and_notify: {
         Args: {
           p_actie: string
@@ -388,6 +551,7 @@ export type Database = {
       }
     }
     Enums: {
+      lid_rol: "eigenaar" | "beheerder"
       reservation_status: "bevestigd" | "aangekomen" | "no_show" | "geannuleerd"
     }
     CompositeTypes: {
@@ -516,6 +680,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      lid_rol: ["eigenaar", "beheerder"],
       reservation_status: ["bevestigd", "aangekomen", "no_show", "geannuleerd"],
     },
   },

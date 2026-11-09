@@ -15,8 +15,8 @@ weet hoeveel personen en menu's er verwacht worden.
 
 ```
 supabase/
-  migrations/        -- SQL-migraties (schema, RLS, functies, realtime)
-  seed.sql           -- standaard instellingen + weekshiften (idempotent)
+  migrations/        -- SQL-migraties (multi-tenant schema, RLS, functies, realtime)
+  seed.sql           -- restaurants Bistro de Borre + Demo Brasserie met weekshiften (idempotent)
 src/
   app/
     (public)/        -- publieke reservatiepagina('s)
@@ -40,7 +40,8 @@ public/embed.js      -- embed-script voor de widget (stap 5)
    cron-gegevens in.
 2. `npm install`
 3. `npm run dev` — start de Next.js-dev-server.
-4. `npm test` — unit tests (vitest).
+4. `npm test` — unit tests (vitest), inclusief databasetests van schema en RLS in een
+   in-memory Postgres (PGlite, `tests/db/`). Geen Docker of Supabase nodig.
 
 ## Supabase
 
@@ -50,6 +51,9 @@ Het project is gelinkt via de Supabase CLI. Migraties toepassen:
 supabase link --project-ref <project-ref>
 supabase db push
 ```
+
+Het schema is multi-tenant: elk restaurant (`restaurants`) heeft zijn eigen settings, shiften,
+uitzonderingen en reservaties via `restaurant_id`. Zie `docs/multi-tenant-plan.md`.
 
 Types opnieuw genereren na een schemawijziging:
 
@@ -62,14 +66,14 @@ uitgevoerd worden (bv. via de Supabase SQL Editor).
 
 ### Beveiligingsmodel (RLS)
 
-- Publiek (`anon`) kan **enkel** lezen: actieve shiften, datumuitzonderingen
-  en geaggregeerde bezetting per slot (géén persoonsgegevens).
+- Publiek (`anon`) heeft geen enkele rechtstreekse toegang. Boekingspagina, widget en cron
+  lopen server-side met de service-role key en geven altijd een `restaurant_id` mee.
 - Reservaties aanmaken/annuleren gebeurt uitsluitend via de
   `SECURITY DEFINER`-functies `create_reservation()` en
-  `cancel_reservation()`, die binnen één transactie de capaciteit
-  herverifiëren (voorkomt overboeking bij gelijktijdige aanvragen).
-- Beheerders (Supabase Auth met `app_metadata.role = "admin"`, zie `is_admin()`) hebben volledige lees-/
-  schrijftoegang tot alle tabellen.
+  `cancel_reservation()`. Een advisory lock per restaurant + slot laat gelijktijdige
+  aanvragen na elkaar lopen, zodat de capaciteit nooit overschreden wordt.
+- Ingelogde gebruikers zien via RLS enkel de restaurants waarvan ze lid zijn
+  (`memberships`, functie `is_lid()`).
 - Elke insert/update op `reservations` triggert automatisch een
   `reservation_logs`-rij en een `notifications`-rij (voor het live
   meldingensysteem in de admin-backend).
@@ -101,19 +105,22 @@ Wil je een eigen knop of menu-item gebruiken? Geef het via `data-open=".mijn-kno
 
 ## Beheer
 
-Log in via `/admin/login`. Alleen gebruikers met `app_metadata.role = "admin"`
-krijgen toegang (zowel in de app als via RLS, zie migratie 0007). Een
-beheerder aanmaken: Supabase > Authentication > Users > gebruiker toevoegen en
-daarna in de SQL-editor:
+Log in via `/admin/login`. Tijdens de overgang naar multi-tenant zijn twee dingen nodig:
+`app_metadata.role = "admin"` (toegang tot de app) én een rij in `memberships` (RLS, o.a. voor
+de live meldingen). Een beheerder aanmaken: Supabase > Authentication > Users > gebruiker
+toevoegen en daarna in de SQL-editor:
 
 ```sql
 update auth.users set raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}' where email = 'jij@example.com';
+insert into memberships (user_id, restaurant_id, rol)
+select u.id, r.id, 'eigenaar' from auth.users u, restaurants r
+where u.email = 'jij@example.com' and r.slug = 'bistro-de-borre';
 ```
 
 ## Deployen op Vercel
 
 1. **Supabase**: maak een project, `supabase link --project-ref <ref>` en `supabase db push`
-   (migraties 0001–0007). Voer daarna `supabase/seed.sql` uit in de SQL Editor.
+   Voer daarna `supabase/seed.sql` uit in de SQL Editor.
    Zet in Authentication > Settings het aanmaken van nieuwe gebruikers uit.
 2. **Beheerder**: maak een gebruiker aan en geef die de rol `admin` (zie "Beheer").
 3. **GitHub + Vercel**: push de code, importeer de repo in Vercel (framework Next.js,
@@ -127,7 +134,7 @@ update auth.users set raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}
    | `SUPABASE_SECRET_KEY` | secret/service_role key (enkel server-side) |
    | `RESEND_API_KEY` | Resend API-key |
    | `EMAIL_FROM` | `Bistro de Borre <reservaties@jouwdomein.be>` |
-   | `NOTIFICATION_EMAIL` | fallback restaurant-adres |
+   | `STANDAARD_RESTAURANT_SLUG` | tijdelijk: `bistro-de-borre` (tot de routing per restaurant er is) |
    | `CRON_SECRET` | lange willekeurige string; Vercel stuurt die mee als `Authorization: Bearer` |
    | `NEXT_PUBLIC_SITE_URL` | `https://<jouw-domein>` (voor annuleerlinks) |
 

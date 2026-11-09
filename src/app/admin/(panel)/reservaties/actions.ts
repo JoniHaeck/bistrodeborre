@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { z } from "zod";
 import type { ActieState } from "@/components/admin/ActieFormulier";
-import { adminDb } from "@/lib/admin/auth";
+import { adminContext } from "@/lib/admin/auth";
 import { STATUSSEN, laadDagContext, type Status } from "@/lib/admin/data";
 import { getSlotsVoorDatum, slotSleutel } from "@/lib/availability";
 import { laadMailInstellingen, stuurHerinnering, stuurNieuweReservatieMails } from "@/lib/email/send";
@@ -33,14 +33,13 @@ const schema = z.object({
   stuur_bevestiging: vinkje,
 });
 
-type Db = Awaited<ReturnType<typeof adminDb>>;
-
 /** Geeft een foutmelding of het slot (met shift) terug. `bestaand` = de reservatie die bewerkt wordt. */
 async function controleerSlot(
+  restaurantId: string,
   input: { datum: string; tijdslot: string; aantal: number; negeer_capaciteit: boolean },
   bestaand?: { datum: string; tijdslot: string; aantal_personen: number; status: Status },
 ) {
-  const ctx = await laadDagContext(input.datum);
+  const ctx = await laadDagContext(restaurantId, input.datum);
   const slot = getSlotsVoorDatum(input.datum, ctx).find((s) => s.tijdslot === input.tijdslot);
   if (!slot) return { fout: `Er is geen shift op ${input.datum} om ${input.tijdslot}. Kies een kwartier binnen een actieve shift.` };
 
@@ -64,15 +63,16 @@ function leesFout(error: z.ZodError): ActieState {
 }
 
 export async function maakReservatie(formData: FormData): Promise<ActieState> {
-  const db: Db = await adminDb();
+  const { db, restaurant } = await adminContext();
   const parsed = schema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return leesFout(parsed.error);
   const input = parsed.data;
 
-  const controle = await controleerSlot(input);
+  const controle = await controleerSlot(restaurant.id, input);
   if ("fout" in controle) return { fout: controle.fout };
 
   const { data, error } = await db.rpc("create_reservation", {
+    p_restaurant_id: restaurant.id,
     p_datum: input.datum,
     p_tijdslot: input.tijdslot,
     p_aantal_personen: input.aantal,
@@ -98,20 +98,20 @@ export async function maakReservatie(formData: FormData): Promise<ActieState> {
 }
 
 export async function bewerkReservatie(id: string, formData: FormData): Promise<ActieState> {
-  const db = await adminDb();
+  const { db, restaurant } = await adminContext();
   if (!z.string().uuid().safeParse(id).success) return { fout: "Ongeldige reservatie." };
   const parsed = schema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return leesFout(parsed.error);
   const input = parsed.data;
 
-  const { data: huidig } = await db.from("reservations").select("*").eq("id", id).single();
+  const { data: huidig } = await db.from("reservations").select("*").eq("restaurant_id", restaurant.id).eq("id", id).maybeSingle();
   if (!huidig) return { fout: "Reservatie niet gevonden." };
 
   const verplaatst =
     huidig.datum !== input.datum || huidig.tijdslot.slice(0, 5) !== input.tijdslot || huidig.aantal_personen !== input.aantal;
   let shiftId = huidig.shift_template_id;
   if (verplaatst) {
-    const controle = await controleerSlot(input, huidig);
+    const controle = await controleerSlot(restaurant.id, input, huidig);
     if ("fout" in controle) return { fout: controle.fout };
     shiftId = controle.slot!.shiftId;
   }
@@ -130,6 +130,7 @@ export async function bewerkReservatie(id: string, formData: FormData): Promise<
       menu: input.menu,
       shift_template_id: shiftId,
     })
+    .eq("restaurant_id", restaurant.id)
     .eq("id", id);
   if (error) {
     console.error("Reservatie bewerken mislukt", error);
@@ -140,29 +141,31 @@ export async function bewerkReservatie(id: string, formData: FormData): Promise<
 }
 
 export async function zetStatus(id: string, status: Status): Promise<ActieState> {
-  const db = await adminDb();
+  const { db, restaurant } = await adminContext();
   if (!z.string().uuid().safeParse(id).success || !STATUSSEN.includes(status)) return { fout: "Ongeldige aanvraag." };
 
-  const { data: huidig } = await db.from("reservations").select("*").eq("id", id).single();
+  const { data: huidig } = await db.from("reservations").select("*").eq("restaurant_id", restaurant.id).eq("id", id).maybeSingle();
   if (!huidig) return { fout: "Reservatie niet gevonden." };
 
   if (huidig.status === "geannuleerd" && status !== "geannuleerd") {
     const controle = await controleerSlot(
+      restaurant.id,
       { datum: huidig.datum, tijdslot: huidig.tijdslot.slice(0, 5), aantal: huidig.aantal_personen, negeer_capaciteit: false },
       huidig,
     );
     if ("fout" in controle) return { fout: `Kan niet heractiveren: ${controle.fout}` };
   }
 
-  const { error } = await db.from("reservations").update({ status }).eq("id", id);
+  const { error } = await db.from("reservations").update({ status }).eq("restaurant_id", restaurant.id).eq("id", id);
   if (error) return { fout: "Status wijzigen mislukt." };
   revalidatePath("/admin", "layout");
   return { ok: "Status bijgewerkt." };
 }
 
 export async function stuurHerinneringAdmin(id: string): Promise<ActieState> {
-  const db = await adminDb();
-  const { data: r } = await db.from("reservations").select("*").eq("id", id).single();
+  const { db, restaurant } = await adminContext();
+  if (!z.string().uuid().safeParse(id).success) return { fout: "Ongeldige reservatie." };
+  const { data: r } = await db.from("reservations").select("*").eq("restaurant_id", restaurant.id).eq("id", id).maybeSingle();
   if (!r) return { fout: "Reservatie niet gevonden." };
   if (r.status === "geannuleerd") return { fout: "Geannuleerde reservaties krijgen geen herinnering." };
   const ok = await stuurHerinnering(r);
@@ -171,14 +174,15 @@ export async function stuurHerinneringAdmin(id: string): Promise<ActieState> {
 }
 
 export async function stuurShiftHerinneringen(datum: string, shiftId: string): Promise<ActieState> {
-  const db = await adminDb();
+  const { db, restaurant } = await adminContext();
   const { data } = await db
     .from("reservations")
     .select("*")
+    .eq("restaurant_id", restaurant.id)
     .eq("datum", datum)
     .eq("shift_template_id", shiftId)
     .eq("status", "bevestigd");
-  const { ctx } = await laadMailInstellingen();
+  const { ctx } = await laadMailInstellingen(restaurant.id);
   let verstuurd = 0;
   for (const r of data ?? []) if (await stuurHerinnering(r, ctx)) verstuurd++;
   revalidatePath("/admin", "layout");

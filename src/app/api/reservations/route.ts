@@ -2,6 +2,7 @@ import { NextResponse, after, type NextRequest } from "next/server";
 import { reservatieSchema } from "@/lib/validation";
 import { valideerReservatie } from "@/lib/availability";
 import { laadAvailabilityContext } from "@/lib/availability-data";
+import { standaardRestaurant } from "@/lib/server/restaurant";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { stuurNieuweReservatieMails } from "@/lib/email/send";
 
@@ -25,7 +26,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const ctx = await laadAvailabilityContext();
+    const restaurant = await standaardRestaurant();
+    const ctx = await laadAvailabilityContext(restaurant.id);
     const resultaat = valideerReservatie(input, ctx);
     if (!resultaat.ok) {
       const status = resultaat.code === "volzet" ? 409 : 422;
@@ -34,6 +36,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServiceRoleClient();
     const { data, error } = await supabase.rpc("create_reservation", {
+      p_restaurant_id: restaurant.id,
       p_datum: input.datum,
       p_tijdslot: input.tijdslot,
       p_aantal_personen: input.aantal,

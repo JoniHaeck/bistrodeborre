@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { ReservatieFormulier } from "@/components/public/ReservatieFormulier";
 import { getBeschikbareDagen } from "@/lib/availability";
 import { laadAvailabilityContext, laadPubliekeInstellingen } from "@/lib/availability-data";
+import { standaardRestaurant } from "@/lib/server/restaurant";
 
 const STANDAARD_AANTAL = 2;
 const KLEUR = /^#[0-9a-fA-F]{6}$/;
@@ -32,7 +33,11 @@ export async function FormulierLader({ kleur, lettertype }: { kleur?: string; le
   await connection();
   let data;
   try {
-    const [ctx, instellingen] = await Promise.all([laadAvailabilityContext(), laadPubliekeInstellingen()]);
+    const restaurant = await standaardRestaurant();
+    const [ctx, instellingen] = await Promise.all([
+      laadAvailabilityContext(restaurant.id),
+      laadPubliekeInstellingen(restaurant.id),
+    ]);
     data = { dagen: getBeschikbareDagen(STANDAARD_AANTAL, ctx), instellingen };
   } catch (e) {
     console.error("Formulier laden mislukt", e);

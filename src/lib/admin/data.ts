@@ -37,17 +37,17 @@ export const LOG_LABEL: Record<string, string> = {
  * Context voor één datum waarin enkel sluitingen/blokkades meetellen: beheerders mogen ook
  * in het verleden of buiten de boekingshorizon werken. Daarom een "nu" in 1970 en een ruime horizon.
  */
-export async function laadDagContext(datum: string): Promise<AvailabilityContext> {
+export async function laadDagContext(restaurantId: string, datum: string): Promise<AvailabilityContext> {
   const db = createServiceRoleClient();
   const [instellingen, shiften, uitzonderingen, bezet] = await Promise.all([
     db
       .from("settings")
       .select("slot_minuten, standaard_capaciteit, max_groepsgrootte")
-      .eq("id", 1)
+      .eq("restaurant_id", restaurantId)
       .single(),
-    db.from("shift_templates").select("*").eq("actief", true),
-    db.from("date_exceptions").select("*").eq("datum", datum),
-    db.rpc("get_bezetting", { p_van: datum, p_tot: datum }),
+    db.from("shift_templates").select("*").eq("restaurant_id", restaurantId).eq("actief", true),
+    db.from("date_exceptions").select("*").eq("restaurant_id", restaurantId).eq("datum", datum),
+    db.rpc("get_bezetting", { p_restaurant_id: restaurantId, p_van: datum, p_tot: datum }),
   ]);
   if (instellingen.error) throw instellingen.error;
   if (shiften.error) throw shiften.error;

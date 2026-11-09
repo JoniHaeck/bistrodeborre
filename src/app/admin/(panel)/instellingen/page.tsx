@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { ActieFormulier } from "@/components/admin/ActieFormulier";
-import { adminDb } from "@/lib/admin/auth";
+import { adminContext } from "@/lib/admin/auth";
 import { bewaarInstellingen } from "./actions";
 
 export const metadata: Metadata = { title: "Instellingen — Bistro de Borre" };
 
 export default async function InstellingenPage() {
-  const db = await adminDb();
-  const { data: s } = await db.from("settings").select("*").eq("id", 1).single();
+  const { db, restaurant } = await adminContext();
+  const { data: s } = await db.from("settings").select("*").eq("restaurant_id", restaurant.id).single();
   if (!s) return <p role="alert">Instellingen konden niet geladen worden.</p>;
 
   const getal = (naam: string, label: string, waarde: number, hint?: string) => (
@@ -39,7 +39,7 @@ export default async function InstellingenPage() {
           {getal("herinnering_uren_vooraf", "Herinnering (uren vooraf)", s.herinnering_uren_vooraf)}
           <label className="lbl">
             Notificatie-e-mail restaurant
-            <input type="email" name="notificatie_email" defaultValue={s.notificatie_email} required className="veld" />
+            <input type="email" name="notificatie_email" defaultValue={s.notificatie_email ?? ""} className="veld" />
           </label>
         </fieldset>
 
@@ -47,7 +47,7 @@ export default async function InstellingenPage() {
           <legend className="px-1 font-semibold">Weergave en widget</legend>
           <label className="lbl">
             Restaurantnaam
-            <input name="restaurant_naam" defaultValue={s.restaurant_naam} required className="veld" />
+            <input name="restaurant_naam" defaultValue={restaurant.naam} required className="veld" />
           </label>
           <label className="lbl">
             Primaire kleur

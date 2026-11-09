@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ActieFormulier } from "@/components/admin/ActieFormulier";
 import { ReservatieVelden } from "@/components/admin/ReservatieVelden";
-import { adminDb } from "@/lib/admin/auth";
+import { adminContext } from "@/lib/admin/auth";
 import { vandaagInBrussel } from "@/lib/time";
 import { maakReservatie } from "../actions";
 
@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Reservatie toevoegen — Bistro de B
 
 export default async function NieuweReservatiePage() {
   await connection();
-  await adminDb();
+  await adminContext();
   return (
     <div className="max-w-2xl space-y-4">
       <Link href="/admin/reservaties" className="text-sm underline">
