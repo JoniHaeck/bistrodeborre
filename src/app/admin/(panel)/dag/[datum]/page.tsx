@@ -19,7 +19,7 @@ export default async function DagPage({ params }: { params: Promise<{ datum: str
   if (!/^\d{4}-\d{2}-\d{2}$/.test(datum) || Number.isNaN(Date.parse(datum))) notFound();
 
   const [ctx, { data }] = await Promise.all([
-    laadDagContext(restaurant.id, datum),
+    laadDagContext(db, restaurant.id, datum),
     db.from("reservations").select("*").eq("restaurant_id", restaurant.id).eq("datum", datum).neq("status", "geannuleerd").order("tijdslot").order("naam"),
   ]);
   const slots = getSlotsVoorDatum(datum, ctx);

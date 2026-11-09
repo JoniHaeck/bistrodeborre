@@ -1,4 +1,4 @@
-import { createServiceRoleClient } from "@/lib/supabase/service";
+import type { AdminDb } from "@/lib/admin/auth";
 import { normaliseerTijd, slotSleutel, type AvailabilityContext } from "@/lib/availability";
 
 export const STATUSSEN = ["bevestigd", "aangekomen", "no_show", "geannuleerd"] as const;
@@ -37,8 +37,7 @@ export const LOG_LABEL: Record<string, string> = {
  * Context voor één datum waarin enkel sluitingen/blokkades meetellen: beheerders mogen ook
  * in het verleden of buiten de boekingshorizon werken. Daarom een "nu" in 1970 en een ruime horizon.
  */
-export async function laadDagContext(restaurantId: string, datum: string): Promise<AvailabilityContext> {
-  const db = createServiceRoleClient();
+export async function laadDagContext(db: AdminDb, restaurantId: string, datum: string): Promise<AvailabilityContext> {
   const [instellingen, shiften, uitzonderingen, bezet] = await Promise.all([
     db
       .from("settings")

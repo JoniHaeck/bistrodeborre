@@ -35,7 +35,7 @@ function piep() {
   }
 }
 
-export function NotificatieBel() {
+export function NotificatieBel({ restaurantId }: { restaurantId: string }) {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [meldingen, setMeldingen] = useState<Melding[]>([]);
@@ -61,17 +61,21 @@ export function NotificatieBel() {
     const { data } = await supabase
       .from("notifications")
       .select(SELECT)
+      .eq("restaurant_id", restaurantId)
       .order("created_at", { ascending: false })
       .limit(30);
     setMeldingen((data as unknown as Melding[]) ?? []);
-  }, [supabase]);
+  }, [supabase, restaurantId]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void laad();
     const kanaal = supabase
-      .channel("admin-meldingen")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, async (payload) => {
+      .channel(`admin-meldingen-${restaurantId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications", filter: `restaurant_id=eq.${restaurantId}` },
+        async (payload) => {
         const { data } = await supabase.from("notifications").select(SELECT).eq("id", payload.new.id).single();
         const melding = data as unknown as Melding | null;
         if (!melding) return;
@@ -84,17 +88,18 @@ export function NotificatieBel() {
           });
         }
         router.refresh();
-      })
+        },
+      )
       .subscribe();
     return () => {
       void supabase.removeChannel(kanaal);
     };
-  }, [supabase, laad, router]);
+  }, [supabase, laad, router, restaurantId]);
 
   const ongelezen = meldingen.filter((m) => !m.gelezen).length;
 
   async function markeer(id?: string) {
-    const q = supabase.from("notifications").update({ gelezen: true });
+    const q = supabase.from("notifications").update({ gelezen: true }).eq("restaurant_id", restaurantId);
     await (id ? q.eq("id", id) : q.eq("gelezen", false));
     setMeldingen((huidig) => huidig.map((m) => (!id || m.id === id ? { ...m, gelezen: true } : m)));
   }

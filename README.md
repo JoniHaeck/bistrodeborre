@@ -73,7 +73,10 @@ uitgevoerd worden (bv. via de Supabase SQL Editor).
   `cancel_reservation()`. Een advisory lock per restaurant + slot laat gelijktijdige
   aanvragen na elkaar lopen, zodat de capaciteit nooit overschreden wordt.
 - Ingelogde gebruikers zien via RLS enkel de restaurants waarvan ze lid zijn
-  (`memberships`, functie `is_lid()`).
+  (`memberships`, functie `is_lid()`). Superadmins (`platform_admins`) hebben toegang tot
+  alle restaurants.
+- Het beheer gebruikt altijd de sessie-client van de gebruiker, nooit de service-role key
+  (afgedwongen met een ESLint-regel).
 - Elke insert/update op `reservations` triggert automatisch een
   `reservation_logs`-rij en een `notifications`-rij (voor het live
   meldingensysteem in de admin-backend).
@@ -105,16 +108,17 @@ Wil je een eigen knop of menu-item gebruiken? Geef het via `data-open=".mijn-kno
 
 ## Beheer
 
-Log in via `/admin/login`. Tijdens de overgang naar multi-tenant zijn twee dingen nodig:
-`app_metadata.role = "admin"` (toegang tot de app) én een rij in `memberships` (RLS, o.a. voor
-de live meldingen). Een beheerder aanmaken: Supabase > Authentication > Users > gebruiker
-toevoegen en daarna in de SQL-editor:
+Log in via `/admin/login`. Toegang hangt af van een rij in `memberships` (beheerder van één
+restaurant) of in `platform_admins` (superadmin, alle restaurants). Een beheerder aanmaken:
+Supabase > Authentication > Users > gebruiker toevoegen en daarna in de SQL-editor:
 
 ```sql
-update auth.users set raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}' where email = 'jij@example.com';
 insert into memberships (user_id, restaurant_id, rol)
 select u.id, r.id, 'eigenaar' from auth.users u, restaurants r
 where u.email = 'jij@example.com' and r.slug = 'bistro-de-borre';
+
+-- Superadmin (alle restaurants):
+insert into platform_admins (user_id) select id from auth.users where email = 'jij@example.com';
 ```
 
 ## Deployen op Vercel

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { NotificatieBel } from "@/components/admin/NotificatieBel";
-import { requireAdmin } from "@/lib/admin/auth";
+import { adminContext } from "@/lib/admin/auth";
 import { vandaagInBrussel } from "@/lib/time";
 import { logout } from "../login/actions";
 
@@ -16,7 +16,7 @@ export default function PanelLayout({ children }: { children: React.ReactNode })
 
 async function Shell({ children }: { children: React.ReactNode }) {
   await connection();
-  await requireAdmin();
+  const { restaurant } = await adminContext();
   const vandaag = vandaagInBrussel();
   const links = [
     { href: "/admin/dashboard", label: "Dashboard" },
@@ -29,7 +29,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
     <>
       <header className="border-b border-[#dcdcd2] bg-[#f3f3f0] print:hidden">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
-          <span className="font-serif text-xl text-[#38372a]">Bistro de Borre</span>
+          <span className="font-serif text-xl text-[#38372a]">{restaurant.naam}</span>
           <nav aria-label="Beheer" className="flex flex-1 flex-wrap gap-x-4 gap-y-1">
             {links.map((l) => (
               <Link key={l.href} href={l.href} className="text-sm underline-offset-4 hover:underline">
@@ -37,7 +37,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
               </Link>
             ))}
           </nav>
-          <NotificatieBel />
+          <NotificatieBel restaurantId={restaurant.id} />
           <form action={logout}>
             <button type="submit" className="btn-sec">
               Uitloggen

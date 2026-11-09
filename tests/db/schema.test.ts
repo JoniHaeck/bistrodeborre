@@ -13,6 +13,7 @@ const A = "00000000-0000-4000-8000-000000000001"; // bistro-de-borre
 const B = "00000000-0000-4000-8000-000000000002"; // demo-brasserie
 const LID_A = "11111111-1111-4111-8111-111111111111";
 const ZONDER_LID = "22222222-2222-4222-8222-222222222222";
+const SUPERADMIN = "33333333-3333-4333-8333-333333333333";
 
 const supabaseDir = path.resolve(__dirname, "../../supabase");
 let db: PGlite;
@@ -60,7 +61,7 @@ beforeAll(async () => {
   shiftA = (await rijen<{ id: string }>("select id from shift_templates where restaurant_id = $1 and weekdag = $2 and naam = 'Avond'", [A, weekdag]))[0].id;
   shiftB = (await rijen<{ id: string }>("select id from shift_templates where restaurant_id = $1 and weekdag = $2", [B, weekdag]))[0]?.id ?? null;
 
-  await db.query("insert into auth.users values ($1, 'eigenaar@a.be'), ($2, 'los@x.be')", [LID_A, ZONDER_LID]);
+  await db.query("insert into auth.users values ($1, 'eigenaar@a.be'), ($2, 'los@x.be'), ($3, 'super@x.be')", [LID_A, ZONDER_LID, SUPERADMIN]);
   await db.query("insert into memberships (user_id, restaurant_id, rol) values ($1, $2, 'eigenaar')", [LID_A, A]);
 });
 
@@ -168,9 +169,43 @@ describe("RLS: lid van restaurant A", () => {
     await expect(db.query("update reservations set restaurant_id = $1 where restaurant_id = $2", [B, A])).rejects.toThrow();
   });
 
-  it("kan de serverfuncties niet rechtstreeks aanroepen", async () => {
-    await expect(maak(A, null, 1, 100)).rejects.toThrow(/permission denied/);
-    await expect(db.query("select * from get_bezetting($1, $2, $2)", [B, dag])).rejects.toThrow(/permission denied/);
+  it("kan bezetting en manuele boekingen enkel voor A gebruiken", async () => {
+    await expect(maak(A, null, 1, 100)).resolves.toBeTruthy();
+    await expect(db.query("select * from get_bezetting($1, $2, $2)", [A, dag])).resolves.toBeTruthy();
+    await expect(maak(B, null, 1, 100)).rejects.toThrow(/geen toegang/);
+    await expect(db.query("select * from get_bezetting($1, $2, $2)", [B, dag])).rejects.toThrow(/geen toegang/);
+  });
+
+  it("kan interne functies niet aanroepen en is geen superadmin", async () => {
+    await expect(db.query("select controleer_toegang($1)", [A])).rejects.toThrow(/permission denied/);
+    await expect(db.query("select * from log_and_notify(gen_random_uuid(), 'x', null, null)")).rejects.toThrow(/permission denied/);
+    expect((await rijen<{ ok: boolean }>("select is_platform_admin() as ok"))[0].ok).toBe(false);
+    expect(await rijen("select user_id from platform_admins")).toEqual([]);
+  });
+});
+
+describe("RLS: superadmin", () => {
+  beforeAll(async () => {
+    await als("service_role");
+    await db.query("insert into platform_admins (user_id) values ($1)", [SUPERADMIN]);
+    await als("authenticated", SUPERADMIN);
+  });
+
+  it("ziet alle restaurants en hun reservaties", async () => {
+    expect((await rijen<{ id: string }>("select id from restaurants order by id")).map((r) => r.id)).toEqual([A, B]);
+    const r = await rijen<{ r: string }>("select distinct restaurant_id as r from reservations order by 1");
+    expect(r.map((x) => x.r)).toEqual([A, B]);
+  });
+
+  it("ziet alle lidmaatschappen en mag in elk restaurant boeken", async () => {
+    expect((await rijen("select * from memberships")).length).toBeGreaterThan(0);
+    await expect(maak(B, null, 1, 100)).resolves.toBeTruthy();
+    const upd = await db.query("update settings set max_groepsgrootte = 11 where restaurant_id = $1", [B]);
+    expect(upd.affectedRows).toBe(1);
+  });
+
+  it("kan zichzelf of anderen geen superadmin maken", async () => {
+    await expect(db.query("insert into platform_admins (user_id) values ($1)", [ZONDER_LID])).rejects.toThrow(/row-level security/);
   });
 });
 

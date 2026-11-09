@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { z } from "zod";
 import type { ActieState } from "@/components/admin/ActieFormulier";
-import { adminContext } from "@/lib/admin/auth";
+import { adminContext, type AdminDb } from "@/lib/admin/auth";
 import { STATUSSEN, laadDagContext, type Status } from "@/lib/admin/data";
 import { getSlotsVoorDatum, slotSleutel } from "@/lib/availability";
 import { laadMailInstellingen, stuurHerinnering, stuurNieuweReservatieMails } from "@/lib/email/send";
@@ -35,11 +35,12 @@ const schema = z.object({
 
 /** Geeft een foutmelding of het slot (met shift) terug. `bestaand` = de reservatie die bewerkt wordt. */
 async function controleerSlot(
+  db: AdminDb,
   restaurantId: string,
   input: { datum: string; tijdslot: string; aantal: number; negeer_capaciteit: boolean },
   bestaand?: { datum: string; tijdslot: string; aantal_personen: number; status: Status },
 ) {
-  const ctx = await laadDagContext(restaurantId, input.datum);
+  const ctx = await laadDagContext(db, restaurantId, input.datum);
   const slot = getSlotsVoorDatum(input.datum, ctx).find((s) => s.tijdslot === input.tijdslot);
   if (!slot) return { fout: `Er is geen shift op ${input.datum} om ${input.tijdslot}. Kies een kwartier binnen een actieve shift.` };
 
@@ -68,7 +69,7 @@ export async function maakReservatie(formData: FormData): Promise<ActieState> {
   if (!parsed.success) return leesFout(parsed.error);
   const input = parsed.data;
 
-  const controle = await controleerSlot(restaurant.id, input);
+  const controle = await controleerSlot(db, restaurant.id, input);
   if ("fout" in controle) return { fout: controle.fout };
 
   const { data, error } = await db.rpc("create_reservation", {
@@ -111,7 +112,7 @@ export async function bewerkReservatie(id: string, formData: FormData): Promise<
     huidig.datum !== input.datum || huidig.tijdslot.slice(0, 5) !== input.tijdslot || huidig.aantal_personen !== input.aantal;
   let shiftId = huidig.shift_template_id;
   if (verplaatst) {
-    const controle = await controleerSlot(restaurant.id, input, huidig);
+    const controle = await controleerSlot(db, restaurant.id, input, huidig);
     if ("fout" in controle) return { fout: controle.fout };
     shiftId = controle.slot!.shiftId;
   }
@@ -149,6 +150,7 @@ export async function zetStatus(id: string, status: Status): Promise<ActieState>
 
   if (huidig.status === "geannuleerd" && status !== "geannuleerd") {
     const controle = await controleerSlot(
+      db,
       restaurant.id,
       { datum: huidig.datum, tijdslot: huidig.tijdslot.slice(0, 5), aantal: huidig.aantal_personen, negeer_capaciteit: false },
       huidig,

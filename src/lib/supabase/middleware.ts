@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 /**
  * Ververst de Supabase-sessie-cookie bij elk request en beveiligt de
  * admin-routes: niet-ingelogde gebruikers worden naar /admin/login gestuurd.
- * Enkel gebruikers met app_metadata.role = 'admin' zijn beheerders.
+ * Of iemand een restaurant mag beheren, beslist adminContext() (RLS via memberships).
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -35,7 +35,7 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAdminRoute = pathname.startsWith("/admin") && pathname !== "/admin/login";
 
-  if (isAdminRoute && user?.app_metadata?.role !== "admin") {
+  if (isAdminRoute && !user) {
     const loginUrl = new URL("/admin/login", request.url);
     loginUrl.searchParams.set("volgende", pathname);
     return NextResponse.redirect(loginUrl);

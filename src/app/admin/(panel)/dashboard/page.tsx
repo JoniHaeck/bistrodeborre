@@ -26,7 +26,7 @@ export default async function DashboardPage() {
     Promise.all(
       dagen.map(async (datum) => {
         const [ctx, res] = await Promise.all([
-          laadDagContext(restaurant.id, datum),
+          laadDagContext(db, restaurant.id, datum),
           db.from("reservations").select("aantal_personen, menu").eq("restaurant_id", restaurant.id).eq("datum", datum).neq("status", "geannuleerd"),
         ]);
         const rijen = res.data ?? [];

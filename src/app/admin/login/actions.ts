@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { isAdmin } from "@/lib/admin/auth";
+import { heeftBeheertoegang } from "@/lib/admin/auth";
 import type { ActieState } from "@/components/admin/ActieFormulier";
 
 const schema = z.object({
@@ -22,7 +22,7 @@ export async function login(formData: FormData): Promise<ActieState> {
     password: parsed.data.password,
   });
   if (error || !data.user) return { fout: "E-mailadres of wachtwoord klopt niet." };
-  if (!isAdmin(data.user)) {
+  if (!(await heeftBeheertoegang(supabase))) {
     await supabase.auth.signOut();
     return { fout: "Dit account heeft geen toegang tot het beheer." };
   }

@@ -167,6 +167,21 @@ export type Database = {
           },
         ]
       }
+      platform_admins: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       reservation_logs: {
         Row: {
           actie: string
@@ -564,6 +579,7 @@ export type Database = {
           widget_primaire_kleur: string
         }[]
       }
+      is_platform_admin: { Args: never; Returns: boolean }
       is_lid: { Args: { p_restaurant_id: string }; Returns: boolean }
       log_and_notify: {
         Args: {

@@ -1,27 +1,43 @@
 import { redirect } from "next/navigation";
-import type { User } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import { createServiceRoleClient } from "@/lib/supabase/service";
-import { standaardRestaurant } from "@/lib/server/restaurant";
+import { standaardSlug, type Restaurant } from "@/lib/server/restaurant";
+import type { Database } from "@/types/database";
 
-export const isAdmin = (user: User | null | undefined) => user?.app_metadata?.role === "admin";
+export type AdminDb = SupabaseClient<Database>;
 
-/** Controleert de sessie (server-side gevalideerd) en stuurt niet-beheerders naar de login. */
-export async function requireAdmin() {
-  const {
-    data: { user },
-  } = await (await createClient()).auth.getUser();
-  if (!isAdmin(user)) redirect("/admin/login");
-  return user!;
+/** Heeft de ingelogde gebruiker toegang tot het beheer (superadmin of lid van minstens één restaurant)? */
+export async function heeftBeheertoegang(db: AdminDb): Promise<boolean> {
+  const [{ data: superadmin }, { count }] = await Promise.all([
+    db.rpc("is_platform_admin"),
+    db.from("memberships").select("restaurant_id", { count: "exact", head: true }),
+  ]);
+  return superadmin === true || (count ?? 0) > 0;
 }
 
 /**
- * Database + restaurant voor admin-pagina's en -acties, enkel na een geslaagde beheerderscontrole.
- * Elke query moet filteren op `restaurant.id` (en elke insert het meegeven).
- * Fase 2 vervangt de service-client door de sessie-client (RLS via memberships);
- * fase 3 haalt het restaurant uit de URL in plaats van de standaard.
+ * Database + restaurant voor admin-pagina's en -acties.
+ *
+ * `db` is de sessie-client van de ingelogde gebruiker: RLS (memberships / platform_admins)
+ * beslist welke data zichtbaar en wijzigbaar is. Het restaurant wordt via diezelfde client
+ * opgezocht, dus wie geen toegang heeft, krijgt het niet te zien en wordt doorgestuurd.
+ * Filter toch elke query op `restaurant.id`: een superadmin ziet anders alle restaurants.
+ *
+ * Fase 3 haalt de slug uit de URL in plaats van de standaard.
  */
-export async function adminContext() {
-  await requireAdmin();
-  return { db: createServiceRoleClient(), restaurant: await standaardRestaurant() };
+export async function adminContext(slug: string = standaardSlug()): Promise<{ db: AdminDb; restaurant: Restaurant }> {
+  const db = await createClient();
+  const {
+    data: { user },
+  } = await db.auth.getUser();
+  if (!user) redirect("/admin/login");
+
+  const { data: restaurant, error } = await db
+    .from("restaurants")
+    .select("id, slug, naam, tijdzone, status")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error) throw error;
+  if (!restaurant) redirect("/admin/geen-toegang");
+  return { db, restaurant };
 }

@@ -150,7 +150,16 @@ Oorspronkelijk plan:
 - `src/types/database.ts` opnieuw genereren.
 - `supabase/seed.sql`: twee test-restaurants met elk eigen shiften en reservaties.
 
-### Fase 2: Toegang & RLS (2–3 d)
+### Fase 2: Toegang & RLS (2–3 d) ✅ klaar (branch `multi-tenant`)
+
+Gedaan: migratie `0002_platform_admins.sql` (superadmins, `is_lid()` geldt ook voor hen,
+`get_bezetting`/`create_reservation` ook voor ingelogde beheerders maar enkel voor hun eigen
+restaurant), admin via de sessie-client (`adminContext()`), `app_metadata.role` niet meer
+gebruikt, meldingen gefilterd per restaurant, pagina `/admin/geen-toegang`, ESLint-regel
+tegen de service-key in het beheer, superadmin-tests. De overzichtspagina `/platform` voor
+superadmins schuift naar fase 3 (samen met de routing) en vervangt het script uit fase 4b.
+
+Oorspronkelijk plan:
 - RLS-policies via `is_lid()`; `is_admin()` vervangen.
 - `src/lib/admin/auth.ts` → `restaurantContext(slug)` + `requireRol('eigenaar')` voor instellingen/leden.
 - Alle admin-pagina's en server actions (`reservaties`, `shiften`, `instellingen`, `dag`, `dashboard`)
