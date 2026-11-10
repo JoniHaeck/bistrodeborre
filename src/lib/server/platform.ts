@@ -51,6 +51,46 @@ export async function koppelBeheerder(
   return { ok: true };
 }
 
+/** Nodigt een nieuw account uit; deze functie mag alleen na een superadmin-controle worden aangeroepen. */
+export async function nodigBeheerderUit(
+  restaurantId: string,
+  email: string,
+  rol: "eigenaar" | "beheerder",
+  redirectTo: string,
+): Promise<{ ok: boolean; fout?: string }> {
+  const db = createServiceRoleClient();
+  const { data: restaurant, error: restaurantFout } = await db.from("restaurants").select("id").eq("id", restaurantId).maybeSingle();
+  if (restaurantFout || !restaurant) return { ok: false, fout: "Restaurant niet gevonden of kon niet geladen worden." };
+  const { data: userId, error: zoekFout } = await db.rpc("user_id_voor_email", { p_email: email });
+  if (zoekFout) {
+    console.error("Account opzoeken mislukt", zoekFout);
+    return { ok: false, fout: "Account opzoeken mislukt." };
+  }
+  if (userId) {
+    const { data: bestaand, error: accountFout } = await db.auth.admin.getUserById(userId);
+    if (accountFout || !bestaand.user) {
+      console.error("Accountgegevens ophalen mislukt", accountFout);
+      return { ok: false, fout: "Accountgegevens ophalen mislukt." };
+    }
+    if (bestaand.user.email_confirmed_at || !bestaand.user.invited_at) {
+      return { ok: false, fout: "Dit account bestaat al. Gebruik 'Bestaand account koppelen'." };
+    }
+  }
+  const { data, error } = await db.auth.admin.inviteUserByEmail(email, { redirectTo });
+  if (error || !data.user) {
+    console.error("Beheerder uitnodigen mislukt", error);
+    return { ok: false, fout: "Uitnodigen mislukt. Controleer de e-mailinstellingen en probeer opnieuw." };
+  }
+  const { error: koppelFout } = await db.from("memberships").upsert({
+    user_id: data.user.id, restaurant_id: restaurantId, rol,
+  }, { onConflict: "user_id,restaurant_id" });
+  if (koppelFout) {
+    console.error("Uitgenodigde beheerder koppelen mislukt", koppelFout);
+    return { ok: false, fout: "De uitnodiging is verstuurd, maar koppelen mislukte. Gebruik 'Bestaand account koppelen' om de toegang te herstellen." };
+  }
+  return { ok: true };
+}
+
 /** Maakt een restaurant aan (settings worden automatisch aangemaakt door een databasetrigger). */
 export async function maakRestaurant(input: { naam: string; slug: string; email: string | null }) {
   const { data, error } = await createServiceRoleClient()

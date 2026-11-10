@@ -29,6 +29,14 @@ const schema = z.object({
   herinnering_uren_vooraf: geheel(1, 168),
   herinneringen_actief: vinkje,
   notificatie_email: optioneleEmail("Ongeldig notificatie-e-mailadres."),
+  google_review_url: z.string().trim().max(500).refine((v) => {
+    if (!v) return true;
+    try {
+      return new URL(v).protocol === "https:";
+    } catch {
+      return false;
+    }
+  }, "Geef een geldige reviewlink op die begint met https://.").transform((v) => v || null),
   widget_primaire_kleur: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Kies een geldige kleur."),
   widget_lettertype: z.string().trim().regex(/^[\w ,'"-]{1,100}$/, "Ongeldig lettertype (enkel letters, cijfers, spaties, komma's)."),
   menu_link: z

@@ -22,6 +22,8 @@ const labelKlasse = "block text-sm font-semibold text-[var(--foreground)]";
 
 export function ReservatieFormulier({ slug, initieleDagen, vandaag, initieelAantal, maxGroepsgrootte, menuLink }: Props) {
   const [aantal, setAantal] = useState(initieelAantal);
+  const [groep, setGroep] = useState(false);
+  const [groepsAantal, setGroepsAantal] = useState(String(maxGroepsgrootte + 1));
   const [dagen, setDagen] = useState(initieleDagen);
   const [datum, setDatum] = useState("");
   const [slots, setSlots] = useState<SlotInfo[]>([]);
@@ -40,36 +42,55 @@ export function ReservatieFormulier({ slug, initieleDagen, vandaag, initieelAant
     const id = ++aanvraag.current;
     setLaden(true);
     try {
-      const res = await fetch(`${api(slug)}/availability?aantal=${nieuwAantal}&datum=${nieuweDatum}`);
+      const res = await fetch(`${api(slug)}/availability?aantal=${nieuwAantal}&datum=${nieuweDatum}${groep ? "&groep=1" : ""}`);
       const json = await res.json();
       if (id !== aanvraag.current) return;
-      setSlots(res.ok ? json.slots : []);
+      if (!res.ok) throw new Error("Beschikbaarheid laden mislukt");
+      setSlots(json.slots);
+    } catch (error) {
+      console.error("Tijdstippen laden mislukt", error);
+      if (id === aanvraag.current) {
+        setSlots([]);
+        setMelding("De tijdstippen konden niet geladen worden. Probeer opnieuw.");
+      }
     } finally {
       if (id === aanvraag.current) setLaden(false);
     }
   }
 
-  async function onAantal(waarde: number) {
+  async function onAantal(waarde: number, nieuweGroep = groep) {
+    setGroep(nieuweGroep);
+    if (nieuweGroep) setGroepsAantal(String(waarde));
     setAantal(waarde);
     setTijdslot("");
     setMelding("");
-    setOpen("datum");
+    setOpen(nieuweGroep ? "aantal" : "datum");
     const id = ++aanvraag.current;
     setLaden(true);
     try {
-      const res = await fetch(`${api(slug)}/availability?aantal=${waarde}`);
+      const suffix = nieuweGroep ? "&groep=1" : "";
+      const res = await fetch(`${api(slug)}/availability?aantal=${waarde}${suffix}`);
       const json = await res.json();
       if (id !== aanvraag.current) return;
-      const nieuweDagen: string[] = res.ok ? json.dagen : [];
+      if (!res.ok) throw new Error("Beschikbare dagen laden mislukt");
+      const nieuweDagen: string[] = json.dagen;
       setDagen(nieuweDagen);
       // De gekozen dag kan voor de nieuwe groepsgrootte weggevallen zijn.
       if (datum && !nieuweDagen.includes(datum)) {
         setDatum("");
         setSlots([]);
       } else if (datum) {
-        const r = await fetch(`${api(slug)}/availability?aantal=${waarde}&datum=${datum}`);
+        const r = await fetch(`${api(slug)}/availability?aantal=${waarde}&datum=${datum}${suffix}`);
         const j = await r.json();
-        if (id === aanvraag.current) setSlots(r.ok ? j.slots : []);
+        if (!r.ok) throw new Error("Tijdstippen laden mislukt");
+        if (id === aanvraag.current) setSlots(j.slots);
+      }
+    } catch (error) {
+      console.error("Beschikbaarheid laden mislukt", error);
+      if (id === aanvraag.current) {
+        setDagen([]);
+        setSlots([]);
+        setMelding("De beschikbaarheid kon niet geladen worden. Probeer opnieuw.");
       }
     } finally {
       if (id === aanvraag.current) setLaden(false);
@@ -92,7 +113,7 @@ export function ReservatieFormulier({ slug, initieleDagen, vandaag, initieelAant
     setFouten({});
     setMelding("");
 
-    const res = await fetch(`${api(slug)}/reservations`, {
+    const res = await fetch(`${api(slug)}/${groep ? "groepsaanvragen" : "reservations"}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -139,11 +160,11 @@ export function ReservatieFormulier({ slug, initieleDagen, vandaag, initieelAant
       <div role="status" className="rounded-[5px] bg-[var(--primair-licht)] p-6">
         <h2 className="text-2xl">Bedankt{klaar.voornaam ? `, ${klaar.voornaam}` : ""}!</h2>
         <p className="mt-3">
-          Uw reservatie voor <strong>{klaar.aantal} {klaar.aantal === 1 ? "persoon" : "personen"}</strong> op{" "}
+          Uw {groep ? "aanvraag" : "reservatie"} voor <strong>{klaar.aantal} {klaar.aantal === 1 ? "persoon" : "personen"}</strong> op{" "}
           <strong>{formatDatum(klaar.datum)}</strong> om <strong>{klaar.tijdslot}</strong> is genoteerd.
           {klaar.menu ? " Jullie nemen het menu." : " Jullie kiezen à la carte."}
         </p>
-        <p className="mt-3 text-sm">U ontvangt een bevestiging per e-mail, met een link om te annuleren.</p>
+        <p className="mt-3 text-sm">{groep ? "Dit is nog geen reservatie. Het restaurant beoordeelt uw aanvraag; na bevestiging ontvangt u een e-mail." : "U ontvangt een bevestiging per e-mail, met een link om te annuleren."}</p>
       </div>
     );
   }
@@ -154,7 +175,8 @@ export function ReservatieFormulier({ slug, initieleDagen, vandaag, initieelAant
   }, {});
   const dagLabel = (d: string) => (d === vandaag ? "Vandaag" : null);
   const aantalLabel = `${aantal} ${aantal === 1 ? "gast" : "gasten"}`;
-  const kiesKlaar = Boolean(datum && tijdslot);
+  const geldigGroepsAantal = !groep || (Number.isInteger(Number(groepsAantal)) && Number(groepsAantal) > maxGroepsgrootte && Number(groepsAantal) <= 100);
+  const kiesKlaar = Boolean(datum && tijdslot && geldigGroepsAantal);
 
   return (
     <form onSubmit={onSubmit} noValidate aria-busy={bezig}>
@@ -177,10 +199,33 @@ export function ReservatieFormulier({ slug, initieleDagen, vandaag, initieelAant
         >
           <div role="radiogroup" aria-label="Aantal personen" className="grid grid-cols-5 gap-2">
             {Array.from({ length: maxGroepsgrootte }, (_, i) => i + 1).map((n) => (
-              <Keuze key={n} actief={aantal === n} onClick={() => onAantal(n)}>{n}</Keuze>
+              <Keuze key={n} actief={!groep && aantal === n} onClick={() => onAantal(n, false)}>{n}</Keuze>
             ))}
           </div>
-          <p className="mt-2 text-xs">Met meer dan {maxGroepsgrootte} personen? Neem contact met ons op.</p>
+          {maxGroepsgrootte < 100 && (
+            <div className="mt-3 space-y-2">
+              <button type="button" className="text-sm underline" onClick={() => onAantal(groep ? initieelAantal : maxGroepsgrootte + 1, !groep)}>
+                {groep ? "Terug naar gewone reservatie" : `Meer dan ${maxGroepsgrootte} gasten? Vraag een groepsreservatie aan`}
+              </button>
+              {groep && (
+                <>
+                  <label className={labelKlasse}>
+                    Aantal gasten (maximaal 100)
+                    <input type="number" min={maxGroepsgrootte + 1} max={100} value={groepsAantal} className={veldKlasse}
+                      onChange={(e) => {
+                        const waarde = e.target.value;
+                        setGroepsAantal(waarde);
+                        const n = Number(waarde);
+                        if (Number.isInteger(n) && n > maxGroepsgrootte && n <= 100) setAantal(n);
+                      }} />
+                    {!geldigGroepsAantal && <span className="text-red-800">Kies een aantal tussen {maxGroepsgrootte + 1} en 100.</span>}
+                  </label>
+                  <p className="text-sm">Een groepsaanvraag is pas definitief na bevestiging door het restaurant.</p>
+                  <button type="button" disabled={!geldigGroepsAantal || laden} className={hoofdKnop} onClick={() => setOpen("datum")}>Kies een datum</button>
+                </>
+              )}
+            </div>
+          )}
         </Accordeon>
 
         <Accordeon
@@ -214,7 +259,7 @@ export function ReservatieFormulier({ slug, initieleDagen, vandaag, initieelAant
           uitgeschakeld={!datum}
         >
           {laden && <p role="status" className="text-sm">Laden…</p>}
-          {!laden && slots.length === 0 && <p className="text-sm">Geen vrije plaatsen meer op deze dag.</p>}
+          {!laden && slots.length === 0 && <p className="text-sm">Geen beschikbare tijdstippen op deze dag.</p>}
           {Object.entries(perShift).map(([shift, lijst]) => (
             <div key={shift} className="mb-3 last:mb-0">
               <p className="mb-1 text-sm font-semibold">{shift}</p>
@@ -263,7 +308,7 @@ export function ReservatieFormulier({ slug, initieleDagen, vandaag, initieelAant
         </div>
 
         <button type="button" disabled={!kiesKlaar} onClick={() => setStap("contact")} className={hoofdKnop}>
-          Reserveren
+          {groep ? "Groepsaanvraag verder invullen" : "Reserveren"}
         </button>
       </div>
 
@@ -271,7 +316,7 @@ export function ReservatieFormulier({ slug, initieleDagen, vandaag, initieelAant
       <div hidden={stap !== "contact"}>
         <div className="mb-5 rounded-[5px] bg-[var(--primair-licht)] p-4">
           <div className="flex items-baseline justify-between">
-            <h2 className="text-xl">Uw reservering</h2>
+            <h2 className="text-xl">{groep ? "Uw aanvraag" : "Uw reservering"}</h2>
             <button type="button" onClick={() => setStap("kies")} className="text-sm underline">
               wijzigen
             </button>
@@ -323,7 +368,7 @@ export function ReservatieFormulier({ slug, initieleDagen, vandaag, initieelAant
           </p>
 
           <button type="submit" disabled={bezig} className={hoofdKnop}>
-            {bezig ? "Bezig…" : "Reserveren"}
+            {bezig ? "Bezig…" : groep ? "Groepsaanvraag versturen" : "Reserveren"}
           </button>
         </div>
       </div>

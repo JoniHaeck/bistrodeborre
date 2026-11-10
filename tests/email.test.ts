@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/supabase/service", () => ({ createServiceRoleClient: () => ({}) }));
 
 const { afzender, afzenderAdres } = await import("@/lib/email/send");
-const { bevestigingMail } = await import("@/lib/email/templates");
+const { bevestigingMail, herinneringMail, restaurantMelding } = await import("@/lib/email/templates");
 
 const r = {
   voornaam: "Jan", naam: "Peeters", email: "jan@x.be", telefoon: null, opmerking: null,
@@ -42,5 +42,23 @@ describe("mailtemplates", () => {
     expect(bevestigingMail(r, { ...ctx, logoUrl: "https://cdn.x/logo.png" }).html).toContain('<img src="https://cdn.x/logo.png"');
     expect(bevestigingMail(r, { ...ctx, logoUrl: "javascript:alert(1)" }).html).not.toContain("<img");
     expect(bevestigingMail(r, { ...ctx, kleur: "red;background:url(x)" }).html).not.toContain("url(x)");
+  });
+
+  it("voegt een veilige restaurant-specifieke reviewlink toe aan html en tekst", () => {
+    const review = { ...ctx, googleReviewUrl: "https://g.page/r/abc/review?x=1&y=2" };
+    for (const mail of [bevestigingMail(r, review), herinneringMail(r, review), restaurantMelding(r, review)]) {
+      expect(mail.html).toContain('href="https://g.page/r/abc/review?x=1&amp;y=2"');
+      expect(mail.text).toContain("https://g.page/r/abc/review?x=1&y=2");
+    }
+    expect(bevestigingMail(r, ctx).html).not.toContain("Google-review");
+    expect(bevestigingMail(r, { ...ctx, googleReviewUrl: "javascript:alert(1)" }).html).not.toContain("Google-review");
+  });
+
+  it("gebruikt de ingestelde huisstijl met veilige font-fallback", () => {
+    const html = bevestigingMail(r, { ...ctx, lettertype: '"Open Sans", sans-serif' }).html;
+    expect(html).toContain("&quot;Open Sans&quot;, sans-serif");
+    expect(html).toContain("'DM Serif Text',Georgia,serif");
+    expect(html).toContain("#f3f3f0");
+    expect(bevestigingMail(r, { ...ctx, lettertype: "Arial; background:red" }).html).not.toContain("background:red");
   });
 });

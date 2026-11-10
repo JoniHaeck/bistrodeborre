@@ -67,7 +67,7 @@ async function Inhoud() {
               <th scope="col" className="p-3">Beheerders</th>
               <th scope="col" className="p-3">Komende reservaties</th>
               <th scope="col" className="p-3">Sinds</th>
-              <th scope="col" className="p-3">Beheerder koppelen</th>
+              <th scope="col" className="p-3">Beheerder toevoegen</th>
             </tr>
           </thead>
           <tbody>
@@ -109,7 +109,10 @@ async function Inhoud() {
                       <option value="beheerder">Beheerder</option>
                     </select>
                     <button type="submit" className="btn-sec">
-                      Koppelen
+                      Bestaand account koppelen
+                    </button>
+                    <button type="submit" name="actie" value="uitnodigen" className="btn">
+                      Nieuw account uitnodigen / opnieuw uitnodigen
                     </button>
                   </ActieFormulier>
                 </td>

@@ -28,19 +28,25 @@ export function afzender(restaurantNaam: string, adres = afzenderAdres()): strin
 
 export async function laadMailInstellingen(restaurantId: string) {
   const db = createServiceRoleClient();
-  const [{ data: restaurant }, { data }] = await Promise.all([
+  const [restaurantResultaat, settingsResultaat] = await Promise.all([
     db.from("restaurants").select("naam, email, tijdzone").eq("id", restaurantId).single(),
     db
       .from("settings")
-      .select("notificatie_email, widget_primaire_kleur, logo_url, herinneringen_actief, herinnering_uren_vooraf")
+      .select("notificatie_email, widget_primaire_kleur, widget_lettertype, logo_url, google_review_url, herinneringen_actief, herinnering_uren_vooraf")
       .eq("restaurant_id", restaurantId)
       .single(),
   ]);
+  if (restaurantResultaat.error) throw restaurantResultaat.error;
+  if (settingsResultaat.error) throw settingsResultaat.error;
+  const restaurant = restaurantResultaat.data;
+  const data = settingsResultaat.data;
   const ctx: MailContext = {
     restaurantNaam: restaurant?.naam ?? "",
     siteUrl: siteUrl(),
     kleur: data?.widget_primaire_kleur,
+    lettertype: data?.widget_lettertype,
     logoUrl: data?.logo_url ?? null,
+    googleReviewUrl: data?.google_review_url ?? null,
     // Antwoorden van gasten gaan naar het restaurant, niet naar het platform.
     antwoordAan: restaurant?.email || data?.notificatie_email || null,
   };
@@ -97,6 +103,12 @@ export async function stuurNieuweReservatieMails(r: ReservatieRij) {
     verstuur("bevestiging", r, r.email, ctx, bevestigingMail(r, ctx), ctx.antwoordAan ?? null),
     notificatieEmail ? verstuur("melding", r, notificatieEmail, ctx, restaurantMelding(r, ctx), r.email) : null,
   ]);
+}
+
+/** Alleen de gast bevestigen, bijvoorbeeld na het goedkeuren van een groepsaanvraag. */
+export async function stuurBevestiging(r: ReservatieRij): Promise<boolean> {
+  const { ctx } = await laadMailInstellingen(r.restaurant_id);
+  return verstuur("bevestiging", r, r.email, ctx, bevestigingMail(r, ctx), ctx.antwoordAan ?? null);
 }
 
 /**

@@ -22,9 +22,13 @@ async function Shell({ children, params }: { children: React.ReactNode; params: 
   const superadmin = await isSuperadmin(db);
   const basis = `/app/${restaurant.slug}`;
   const vandaag = vandaagIn(restaurant.tijdzone);
+  const { count, error: aanvraagFout } = await db.from("groepsaanvragen").select("id", { count: "exact", head: true })
+    .eq("restaurant_id", restaurant.id).eq("status", "in_afwachting");
+  if (aanvraagFout) console.error("Aantal groepsaanvragen laden mislukt", aanvraagFout);
   const links = [
     { href: `${basis}/dashboard`, label: "Dashboard" },
     { href: `${basis}/reservaties`, label: "Reservaties" },
+    { href: `${basis}/groepsaanvragen`, label: `Groepsaanvragen${count ? ` (${count})` : ""}` },
     { href: `${basis}/dag/${vandaag}`, label: "Dagoverzicht" },
     { href: `${basis}/shiften`, label: "Shiften" },
     { href: `${basis}/instellingen`, label: "Instellingen" },

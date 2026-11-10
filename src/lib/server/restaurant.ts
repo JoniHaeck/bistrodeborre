@@ -7,7 +7,7 @@ export type Restaurant = Pick<Tables<"restaurants">, "id" | "slug" | "naam" | "t
 /** Slugs die niet als restaurant gebruikt mogen worden (botsen met routes van de app). */
 export const GERESERVEERDE_SLUGS = [
   "admin", "annuleren", "api", "app", "login", "logout", "platform", "registreren",
-  "reserveren", "static", "w", "widget", "www", "_next", "favicon.ico",
+  "reserveren", "static", "uitnodiging", "w", "widget", "www", "_next", "favicon.ico",
 ] as const;
 
 const SLUG = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;

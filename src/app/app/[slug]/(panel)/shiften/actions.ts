@@ -95,6 +95,7 @@ export async function verwijderShift(slug: string, id: string): Promise<ActieSta
 const uitzonderingSchema = z.object({
   datum: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Kies een datum."),
   shift: z.string().max(50).optional(),
+  shift_id: z.string().uuid().optional(),
   soort: z.enum(["gesloten", "geblokkeerd", "slots", "capaciteit"]),
   tijdsloten: z.string().max(300).optional(),
   capaciteit: z.preprocess(leegNaarNull, z.coerce.number().int().min(0).max(500).nullable()),
@@ -109,15 +110,19 @@ export async function maakUitzondering(slug: string, formData: FormData): Promis
   const u = parsed.data;
 
   let shiftId: string | null = null;
-  if (u.shift) {
-    const { data } = await db
+  if (u.shift || u.shift_id) {
+    let query = db
       .from("shift_templates")
       .select("id")
       .eq("restaurant_id", restaurant.id)
-      .eq("naam", u.shift)
-      .eq("weekdag", weekdagVan(u.datum))
-      .maybeSingle();
-    if (!data) return { fout: `Er is geen shift "${u.shift}" op die weekdag.` };
+      .eq("weekdag", weekdagVan(u.datum));
+    query = u.shift_id ? query.eq("id", u.shift_id) : query.eq("naam", u.shift!);
+    const { data, error } = await query.maybeSingle();
+    if (error) {
+      console.error("Shift zoeken mislukt", error);
+      return { fout: "Shift opzoeken mislukt. Controleer of de shiftnaam uniek is." };
+    }
+    if (!data) return { fout: "Er is geen overeenkomstige shift op die weekdag." };
     shiftId = data.id;
   }
 
@@ -141,7 +146,11 @@ export async function maakUitzondering(slug: string, formData: FormData): Promis
       .eq("datum", u.datum)
       .in("status", nietGeannuleerd.split(",") as never);
     if (shiftId) q = q.eq("shift_template_id", shiftId);
-    const { data } = await q;
+    const { data, error } = await q;
+    if (error) {
+      console.error("Bestaande reservaties controleren mislukt", error);
+      return { fout: "Bestaande reservaties konden niet gecontroleerd worden. Probeer opnieuw." };
+    }
     const rijen = data ?? [];
     let geraakt = 0;
     if (u.soort === "gesloten" || u.soort === "geblokkeerd") geraakt = rijen.length;
@@ -172,7 +181,7 @@ export async function maakUitzondering(slug: string, formData: FormData): Promis
     console.error("Uitzondering opslaan mislukt", error);
     return { fout: "Opslaan mislukt." };
   }
-  revalidatePath(`/app/${slug}/shiften`);
+  revalidatePath(`/app/${slug}`, "layout");
   return { ok: "Uitzondering toegevoegd." };
 }
 
@@ -180,6 +189,6 @@ export async function verwijderUitzondering(slug: string, id: string): Promise<A
   const { db, restaurant } = await adminContext(slug);
   const { error } = await db.from("date_exceptions").delete().eq("restaurant_id", restaurant.id).eq("id", id);
   if (error) return { fout: "Verwijderen mislukt." };
-  revalidatePath(`/app/${slug}/shiften`);
+  revalidatePath(`/app/${slug}`, "layout");
   return { ok: "Uitzondering verwijderd." };
 }

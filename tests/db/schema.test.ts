@@ -169,6 +169,15 @@ describe("RLS: lid van restaurant A", () => {
     await expect(db.query("update reservations set restaurant_id = $1 where restaurant_id = $2", [B, A])).rejects.toThrow();
   });
 
+  it("beheert de reviewlink enkel voor het eigen restaurant", async () => {
+    const eigen = await db.query("update settings set google_review_url = $1 where restaurant_id = $2", ["https://g.page/r/eigen/review", A]);
+    const ander = await db.query("update settings set google_review_url = $1 where restaurant_id = $2", ["https://g.page/r/ander/review", B]);
+    expect(eigen.affectedRows).toBe(1);
+    expect(ander.affectedRows).toBe(0);
+    const zichtbaar = await rijen<{ google_review_url: string }>("select google_review_url from settings");
+    expect(zichtbaar).toEqual([{ google_review_url: "https://g.page/r/eigen/review" }]);
+  });
+
   it("kan bezetting en manuele boekingen enkel voor A gebruiken", async () => {
     await expect(maak(A, null, 1, 100)).resolves.toBeTruthy();
     await expect(db.query("select * from get_bezetting($1, $2, $2)", [A, dag])).resolves.toBeTruthy();
@@ -228,7 +237,7 @@ describe("RLS: zonder lidmaatschap en anoniem", () => {
 describe("platformbeheer (migratie 0003)", () => {
   it("weigert gereserveerde slugs", async () => {
     await als("service_role");
-    for (const slug of ["app", "api", "platform", "login", "widget"]) {
+    for (const slug of ["app", "api", "platform", "login", "widget", "uitnodiging"]) {
       await expect(db.query("insert into restaurants (slug, naam) values ($1, 'x')", [slug])).rejects.toThrow(/niet_gereserveerd/);
     }
     // Te kort: al geweigerd door de slug-regex.
@@ -267,6 +276,61 @@ describe("per-restaurant gedrag (migratie 0004)", () => {
     await als("service_role");
     await expect(db.query("update restaurants set tijdzone = 'Mars/Olympus' where id = $1", [A])).rejects.toThrow(/Ongeldige tijdzone/);
     await expect(db.query("insert into restaurants (slug, naam, tijdzone) values ('tz-test', 'x', 'Europe/Brusels')")).rejects.toThrow(/Ongeldige tijdzone/);
+  });
+});
+
+describe("groepsaanvragen", () => {
+  let aanvraag: string;
+  let geslotenAanvraag: string;
+  const maakAanvraag = async (tijd: string) => {
+    const [row] = await rijen<{ id: string }>(
+      `insert into groepsaanvragen (restaurant_id, datum, tijdslot, shift_template_id, aantal_personen, voornaam, naam, email, telefoon)
+       values ($1, $2, $3, $4, 9, 'Groep', 'Test', 'groep@example.invalid', '+32123456789') returning id`,
+      [A, dag, tijd, shiftA],
+    );
+    return row.id;
+  };
+  beforeAll(async () => {
+    await als("service_role");
+    aanvraag = await maakAanvraag("18:30");
+    geslotenAanvraag = await maakAanvraag("18:45");
+    const [andereShift] = await rijen<{ id: string }>("select id from shift_templates where restaurant_id = $1 limit 1", [B]);
+    await db.query(
+      `insert into groepsaanvragen (restaurant_id, datum, tijdslot, shift_template_id, aantal_personen, voornaam, naam, email, telefoon)
+       values ($1, $2, '18:30', $3, 13, 'Andere', 'Groep', 'groep@example.invalid', '+32123456789')`,
+      [B, dag, andereShift.id],
+    );
+    await db.query("insert into date_exceptions (restaurant_id, datum, shift_template_id, geblokkeerde_tijdsloten) values ($1, $2, $3, array['18:45'::time])", [A, dag, shiftA]);
+  });
+
+  it("is enkel zichtbaar en te bevestigen door een lid van het restaurant", async () => {
+    await als("authenticated", ZONDER_LID);
+    expect(await rijen("select id from groepsaanvragen")).toEqual([]);
+    await expect(db.query("select * from bevestig_groepsaanvraag($1, $2, true)", [A, aanvraag])).rejects.toThrow(/geen toegang/);
+    await als("anon");
+    await expect(db.query("select * from groepsaanvragen")).rejects.toThrow(/permission denied/);
+    await als("authenticated", LID_A);
+    expect(await rijen("select id from groepsaanvragen")).toHaveLength(2);
+    await expect(db.query("select * from bevestig_groepsaanvraag($1, $2, true)", [B, aanvraag])).rejects.toThrow(/geen toegang/);
+    await expect(db.query("update groepsaanvragen set status = 'bevestigd' where id = $1", [aanvraag])).rejects.toThrow(/permission denied/);
+  });
+
+  it("waarschuwt bij overcapaciteit en boekt pas na uitdrukkelijke bevestiging", async () => {
+    await als("authenticated", LID_A);
+    await expect(db.query("select * from bevestig_groepsaanvraag($1, $2, false)", [A, aanvraag])).rejects.toThrow(/overcapaciteit/);
+    expect((await rijen<{ status: string }>("select status from groepsaanvragen where id = $1", [aanvraag]))[0].status).toBe("in_afwachting");
+    const [r] = await rijen<{ id: string; aantal_personen: number }>("select * from bevestig_groepsaanvraag($1, $2, true)", [A, aanvraag]);
+    expect(r.aantal_personen).toBe(9);
+    const [a] = await rijen<{ status: string; reservation_id: string }>("select status, reservation_id from groepsaanvragen where id = $1", [aanvraag]);
+    expect(a).toEqual({ status: "bevestigd", reservation_id: r.id });
+    await expect(db.query("select * from bevestig_groepsaanvraag($1, $2, true)", [A, aanvraag])).rejects.toThrow(/al behandeld/);
+    const [{ n }] = await rijen<{ n: number }>("select count(*)::int as n from reservations where id = $1", [r.id]);
+    expect(n).toBe(1);
+  });
+
+  it("weigert bevestiging als het tijdstip intussen geblokkeerd is", async () => {
+    await als("authenticated", LID_A);
+    await expect(db.query("select * from bevestig_groepsaanvraag($1, $2, true)", [A, geslotenAanvraag])).rejects.toThrow(/tijdstip niet meer beschikbaar/);
   });
 });
 

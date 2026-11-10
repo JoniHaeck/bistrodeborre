@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ActieState } from "@/components/admin/ActieFormulier";
 import { ingelogdeDb, isSuperadmin } from "@/lib/admin/auth";
-import { koppelBeheerder, maakRestaurant, maakSlug, slugFout } from "@/lib/server/platform";
+import { koppelBeheerder, maakRestaurant, maakSlug, nodigBeheerderUit, slugFout } from "@/lib/server/platform";
+import { siteUrl } from "@/lib/email/send";
 
 /** Elke platformactie begint hiermee: enkel superadmins. */
 async function vereisSuperadmin() {
@@ -58,6 +59,16 @@ export async function voegBeheerderToe(restaurantId: string, formData: FormData)
   if (!z.string().uuid().safeParse(restaurantId).success) return { fout: "Ongeldig restaurant." };
   const parsed = koppelSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fout: parsed.error.issues[0]?.message ?? "Controleer de gegevens." };
+  if (formData.get("actie") === "uitnodigen") {
+    const url = siteUrl();
+    if (process.env.NODE_ENV === "production" && !url.startsWith("https://")) {
+      return { fout: "Uitnodigen vereist een HTTPS-adres in NEXT_PUBLIC_SITE_URL." };
+    }
+    const resultaat = await nodigBeheerderUit(restaurantId, parsed.data.email, parsed.data.rol, `${url}/uitnodiging`);
+    if (!resultaat.ok) return { fout: resultaat.fout ?? "Uitnodigen mislukt." };
+    revalidatePath("/platform");
+    return { ok: `Uitnodiging verstuurd naar ${parsed.data.email}. De beheerder stelt zelf een wachtwoord in.` };
+  }
   const k = await koppelBeheerder(restaurantId, parsed.data.email, parsed.data.rol);
   if (!k.ok) {
     return { fout: k.reden === "geen_account" ? `Er bestaat nog geen account voor ${parsed.data.email}. Maak het eerst aan in Supabase (Authentication → Users).` : "Koppelen mislukt." };

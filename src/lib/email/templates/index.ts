@@ -18,16 +18,33 @@ export type MailContext = {
   restaurantNaam: string;
   siteUrl: string;
   kleur?: string;
+  lettertype?: string;
   /** Publieke URL van het logo (https). */
   logoUrl?: string | null;
   /** Reply-to voor mails aan gasten: het adres van het restaurant. */
   antwoordAan?: string | null;
+  googleReviewUrl?: string | null;
 };
 
 const KLEUR = /^#[0-9a-fA-F]{6}$/;
 
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+function reviewUrl(c: MailContext): string | null {
+  if (!c.googleReviewUrl) return null;
+  try {
+    const url = new URL(c.googleReviewUrl);
+    return url.protocol === "https:" ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+function reviewTekst(c: MailContext) {
+  const url = reviewUrl(c);
+  return url ? `\n\nSchrijf een Google-review: ${url}` : "";
+}
 
 const uur = (t: string) => t.slice(0, 5);
 const annuleerLink = (r: MailReservatie, c: MailContext) =>
@@ -50,15 +67,18 @@ ${r.opmerking ? rij("Opmerking", r.opmerking) : ""}
 
 function layout(c: MailContext, inhoud: string) {
   const kleur = c.kleur && KLEUR.test(c.kleur) ? c.kleur : "#555555";
-  const titel = `<h1 style="font-family:Georgia,serif;font-weight:400;font-size:24px;color:#222;margin:0 0 16px">${esc(c.restaurantNaam)}</h1>`;
+  const lettertype = c.lettertype && /^[\w ,'"-]{1,100}$/.test(c.lettertype) ? c.lettertype : "Arial,Helvetica,sans-serif";
+  const review = reviewUrl(c);
+  const titel = `<h1 style="font-family:'DM Serif Text',Georgia,serif;font-weight:400;font-size:24px;color:#38372a;margin:0 0 16px">${esc(c.restaurantNaam)}</h1>`;
   const kop = c.logoUrl && /^https:\/\//.test(c.logoUrl)
     ? `<img src="${esc(c.logoUrl)}" alt="${esc(c.restaurantNaam)}" style="display:block;max-height:64px;max-width:240px;margin:0 0 16px" />`
     : titel;
-  return `<!doctype html><html lang="nl"><body style="margin:0;background:#f4f4f2;font-family:Arial,Helvetica,sans-serif;color:#333">
+  return `<!doctype html><html lang="nl"><body style="margin:0;background:#f3f3f0;font-family:${esc(lettertype)};color:#404041">
 <div style="max-width:560px;margin:0 auto;padding:24px">
 <div style="background:#fff;border-radius:5px;padding:24px;border-top:4px solid ${kleur}">
 ${kop}
 ${inhoud}
+${review ? `<p>Met vriendelijke groeten,<br>${esc(c.restaurantNaam)}<br><a href="${esc(review)}" style="color:${kleur}">Schrijf een Google-review</a></p>` : ""}
 </div>
 <p style="margin:16px 0 0;text-align:center;font-size:12px;color:#888">Reservatie via ${PRODUCT_NAAM}</p>
 </div></body></html>`;
@@ -76,7 +96,7 @@ export function bevestigingMail(r: MailReservatie, c: MailContext) {
       c,
       `<p>Beste ${esc(r.voornaam)},</p><p>Bedankt voor uw reservatie. We verwachten u graag!</p>${details(r)}${annuleerBlok(r, c)}`,
     ),
-    text: `Beste ${r.voornaam},\n\nUw reservatie is bevestigd.\n${formatDatum(r.datum, true)} om ${uur(r.tijdslot)}\n${r.aantal_personen} personen, menu: ${r.menu ? "ja" : "nee"}\n\nAnnuleren: ${annuleerLink(r, c)}\n\n${c.restaurantNaam}`,
+    text: `Beste ${r.voornaam},\n\nUw reservatie is bevestigd.\n${formatDatum(r.datum, true)} om ${uur(r.tijdslot)}\n${r.aantal_personen} personen, menu: ${r.menu ? "ja" : "nee"}\n\nAnnuleren: ${annuleerLink(r, c)}\n\n${c.restaurantNaam}${reviewTekst(c)}`,
   };
 }
 
@@ -87,7 +107,7 @@ export function herinneringMail(r: MailReservatie, c: MailContext) {
       c,
       `<p>Beste ${esc(r.voornaam)},</p><p>Een vriendelijke herinnering aan uw reservatie:</p>${details(r)}${annuleerBlok(r, c)}`,
     ),
-    text: `Beste ${r.voornaam},\n\nHerinnering aan uw reservatie.\n${formatDatum(r.datum, true)} om ${uur(r.tijdslot)}\n${r.aantal_personen} personen, menu: ${r.menu ? "ja" : "nee"}\n\nAnnuleren: ${annuleerLink(r, c)}\n\n${c.restaurantNaam}`,
+    text: `Beste ${r.voornaam},\n\nHerinnering aan uw reservatie.\n${formatDatum(r.datum, true)} om ${uur(r.tijdslot)}\n${r.aantal_personen} personen, menu: ${r.menu ? "ja" : "nee"}\n\nAnnuleren: ${annuleerLink(r, c)}\n\n${c.restaurantNaam}${reviewTekst(c)}`,
   };
 }
 
@@ -95,6 +115,6 @@ export function restaurantMelding(r: MailReservatie, c: MailContext) {
   return {
     subject: `Nieuwe reservatie: ${r.voornaam} ${r.naam}, ${r.aantal_personen} p. op ${formatDatum(r.datum)} ${uur(r.tijdslot)}${r.menu ? " (menu)" : ""}`,
     html: layout(c, `<p>Er is een nieuwe reservatie binnengekomen.</p>${details(r, true)}`),
-    text: `Nieuwe reservatie\n${formatDatum(r.datum, true)} om ${uur(r.tijdslot)}\n${r.aantal_personen} personen, menu: ${r.menu ? "ja" : "nee"}\n${r.voornaam} ${r.naam} / ${r.email} / ${r.telefoon ?? "-"}\n${r.opmerking ?? ""}`,
+    text: `Nieuwe reservatie\n${formatDatum(r.datum, true)} om ${uur(r.tijdslot)}\n${r.aantal_personen} personen, menu: ${r.menu ? "ja" : "nee"}\n${r.voornaam} ${r.naam} / ${r.email} / ${r.telefoon ?? "-"}\n${r.opmerking ?? ""}${reviewTekst(c)}`,
   };
 }

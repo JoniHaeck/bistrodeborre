@@ -10,6 +10,7 @@ import { STATUS_LABEL, laadDagContext } from "@/lib/admin/data";
 import { getSlotsVoorDatum, voegDagenToe } from "@/lib/availability";
 import { formatDatum } from "@/lib/format";
 import { stuurShiftHerinneringen } from "../../reservaties/actions";
+import { maakUitzondering } from "../../shiften/actions";
 
 export const metadata: Metadata = { title: "Dagoverzicht" };
 
@@ -49,6 +50,9 @@ export default async function DagPage({ params }: PageProps<"/app/[slug]/dag/[da
         const rijen = reservaties.filter((r) => r.shift_template_id === shiftId);
         const personen = rijen.reduce((t, r) => t + r.aantal_personen, 0);
         const menus = rijen.filter((r) => r.menu).reduce((t, r) => t + r.aantal_personen, 0);
+        const afgesloten = ctx.uitzonderingen.some((u) =>
+          (u.shift_template_id === null || u.shift_template_id === shiftId) && (u.gesloten || u.geblokkeerd),
+        );
         return (
           <section key={shiftId} className="break-inside-avoid">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -56,6 +60,19 @@ export default async function DagPage({ params }: PageProps<"/app/[slug]/dag/[da
               <p className="font-medium">
                 {rijen.length} reservaties · {personen} personen · <strong>{menus} menu&apos;s</strong>
               </p>
+            </div>
+            <div className="mt-2 print:hidden">
+              {afgesloten ? (
+                <p className="text-sm">Deze shift is niet boekbaar. <Link className="underline" href={`${basis}/shiften#uitzonderingen`}>Beheer blokkeringen</Link></p>
+              ) : (
+                <ActieFormulier action={maakUitzondering.bind(null, slug)} bevestigLabel="Shift toch blokkeren">
+                  <input type="hidden" name="datum" value={datum} />
+                  <input type="hidden" name="shift_id" value={shiftId} />
+                  <input type="hidden" name="soort" value="geblokkeerd" />
+                  <input type="hidden" name="capaciteit" value="" />
+                  <button type="submit" className="btn-sec">Shift sluiten voor online boekingen</button>
+                </ActieFormulier>
+              )}
             </div>
             <table className="mt-2 w-full border-collapse text-left text-sm">
               <thead>

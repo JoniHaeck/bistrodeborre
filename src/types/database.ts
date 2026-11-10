@@ -39,6 +39,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      groepsaanvragen: {
+        Row: {
+          id: string; restaurant_id: string; datum: string; tijdslot: string;
+          shift_template_id: string; aantal_personen: number; voornaam: string; naam: string;
+          email: string; telefoon: string; opmerking: string | null; menu: boolean;
+          status: string; reservation_id: string | null; created_at: string;
+        }
+        Insert: {
+          id?: string; restaurant_id: string; datum: string; tijdslot: string;
+          shift_template_id: string; aantal_personen: number; voornaam: string; naam: string;
+          email: string; telefoon: string; opmerking?: string | null; menu?: boolean;
+          status?: string; reservation_id?: string | null; created_at?: string;
+        }
+        Update: {
+          id?: string; restaurant_id?: string; datum?: string; tijdslot?: string;
+          shift_template_id?: string; aantal_personen?: number; voornaam?: string; naam?: string;
+          email?: string; telefoon?: string; opmerking?: string | null; menu?: boolean;
+          status?: string; reservation_id?: string | null; created_at?: string;
+        }
+        Relationships: []
+      }
       date_exceptions: {
         Row: {
           afwijkende_capaciteit: number | null
@@ -371,6 +392,7 @@ export type Database = {
           herinnering_uren_vooraf: number
           herinneringen_actief: boolean
           logo_url: string | null
+          google_review_url: string | null
           max_groepsgrootte: number
           menu_link: string | null
           min_voorboekingsuren: number
@@ -389,6 +411,7 @@ export type Database = {
           herinnering_uren_vooraf?: number
           herinneringen_actief?: boolean
           logo_url?: string | null
+          google_review_url?: string | null
           max_groepsgrootte?: number
           menu_link?: string | null
           min_voorboekingsuren?: number
@@ -407,6 +430,7 @@ export type Database = {
           herinnering_uren_vooraf?: number
           herinneringen_actief?: boolean
           logo_url?: string | null
+          google_review_url?: string | null
           max_groepsgrootte?: number
           menu_link?: string | null
           min_voorboekingsuren?: number
@@ -481,6 +505,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bevestig_groepsaanvraag: {
+        Args: { p_restaurant_id: string; p_id: string; p_overcapaciteit: boolean }
+        Returns: Database["public"]["Tables"]["reservations"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "reservations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       cancel_reservation: {
         Args: { p_token: string }
         Returns: {

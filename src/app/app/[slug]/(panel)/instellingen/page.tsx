@@ -30,7 +30,7 @@ export default async function InstellingenPage({ params }: PageProps<"/app/[slug
         <fieldset className="grid gap-4 rounded-lg border border-neutral-300 bg-white p-4 sm:grid-cols-2">
           <legend className="px-1 font-semibold">Reserveren</legend>
           {getal("standaard_capaciteit", "Standaardcapaciteit per kwartier", s.standaard_capaciteit, "Personen per kwartier, tenzij een shift of uitzondering iets anders bepaalt.")}
-          {getal("max_groepsgrootte", "Maximale groepsgrootte", s.max_groepsgrootte, "Grotere groepen moeten telefonisch boeken.")}
+          {getal("max_groepsgrootte", "Maximale groepsgrootte", s.max_groepsgrootte, "Grotere groepen kunnen een aanvraag indienen die u apart bevestigt.")}
           {getal("boekingshorizon_dagen", "Boekingshorizon (dagen)", s.boekingshorizon_dagen, "Hoever vooruit gasten kunnen boeken.")}
           {getal("min_voorboekingsuren", "Minimaal vooraf boeken (uren)", s.min_voorboekingsuren, "Gasten kunnen niet boeken binnen zoveel uur voor het tijdslot. 0 = tot het laatste moment.")}
         </fieldset>
@@ -51,6 +51,11 @@ export default async function InstellingenPage({ params }: PageProps<"/app/[slug
             Contactadres voor gasten
             <input type="email" name="restaurant_email" defaultValue={r?.email ?? ""} className="veld" />
             <span className="mt-1 block text-xs font-normal text-neutral-600">Als een gast op een bevestiging of herinnering antwoordt, komt dat hier terecht.</span>
+          </label>
+          <label className="lbl sm:col-span-2">
+            Google-reviewlink
+            <input type="url" name="google_review_url" defaultValue={s.google_review_url ?? ""} placeholder="https://…" className="veld" />
+            <span className="mt-1 block text-xs font-normal text-neutral-600">Verschijnt in de handtekening van de e-mails. Laat leeg om geen link te tonen.</span>
           </label>
         </fieldset>
 

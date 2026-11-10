@@ -58,6 +58,31 @@ supabase db push
 Het schema is multi-tenant: elk restaurant (`restaurants`) heeft zijn eigen settings, shiften,
 uitzonderingen en reservaties via `restaurant_id`. Zie `docs/multi-tenant-plan.md`.
 
+Een restaurant kan onder **Instellingen → E-mails** optioneel zijn Google-reviewlink
+invullen. Deze HTTPS-link verschijnt in de HTML- en tekstversie van de e-mails; zonder
+link wordt niets getoond. De mails gebruiken de kleur, het lettertype en het logo van
+het restaurant. E-mailprogramma's die het ingestelde lettertype niet hebben, gebruiken
+een alternatief lettertype.
+
+Gasten boven de ingestelde maximale groepsgrootte kunnen via de widget een groepsaanvraag
+indienen (maximaal 100 personen). Zij kiezen een open shift en tijdstip, ook als het
+kwartier vol is. De aanvraag is nog geen reservatie. Onder **Groepsaanvragen** ziet de
+beheerder de aanvragen en bevestigt ze na een waarschuwing bij overcapaciteit. De
+reservering verschijnt dan in het dagoverzicht en de gast krijgt een bevestigingsmail.
+Bij een mislukte mail kan de beheerder die opnieuw versturen vanuit het overzicht.
+Een shift kan voor een specifieke dag worden gesloten via het dagoverzicht of via
+**Shiften → Uitzonderingen**; bestaande reservaties blijven behouden. Verwijder de
+uitzondering onder Shiften om de shift opnieuw boekbaar te maken.
+
+Een superadmin kan onder **Platform** een bestaand account koppelen of een nieuwe
+beheerder per e-mail uitnodigen. De gastbeheerder kiest zelf een wachtwoord via de
+eenmalige uitnodigingslink. Supabase Auth verstuurt de uitnodiging: stel daar SMTP in
+en voeg `https://<app-domein>/uitnodiging` toe aan de toegestane redirect-URL's.
+`NEXT_PUBLIC_SITE_URL` moet naar het publieke HTTPS-appadres wijzen. Als de mail al
+verzonden is maar de koppeling mislukt, kan de superadmin het bestaande account alsnog
+koppelen. Een uitnodiging aan een nog onbevestigd uitnodigingsaccount kan opnieuw
+worden verstuurd.
+
 Types opnieuw genereren na een schemawijziging:
 
 ```bash
