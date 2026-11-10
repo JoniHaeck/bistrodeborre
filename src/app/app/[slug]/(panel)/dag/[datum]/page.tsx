@@ -11,7 +11,7 @@ import { getSlotsVoorDatum, voegDagenToe } from "@/lib/availability";
 import { formatDatum } from "@/lib/format";
 import { stuurShiftHerinneringen } from "../../reservaties/actions";
 
-export const metadata: Metadata = { title: "Dagoverzicht — Bistro de Borre" };
+export const metadata: Metadata = { title: "Dagoverzicht" };
 
 export default async function DagPage({ params }: PageProps<"/app/[slug]/dag/[datum]">) {
   const { slug, datum } = await params;
@@ -20,7 +20,7 @@ export default async function DagPage({ params }: PageProps<"/app/[slug]/dag/[da
   if (!/^\d{4}-\d{2}-\d{2}$/.test(datum) || Number.isNaN(Date.parse(datum))) notFound();
 
   const [ctx, { data }] = await Promise.all([
-    laadDagContext(db, restaurant.id, datum),
+    laadDagContext(db, restaurant, datum),
     db.from("reservations").select("*").eq("restaurant_id", restaurant.id).eq("datum", datum).neq("status", "geannuleerd").order("tijdslot").order("naam"),
   ]);
   const slots = getSlotsVoorDatum(datum, ctx);

@@ -36,11 +36,11 @@ const schema = z.object({
 /** Geeft een foutmelding of het slot (met shift) terug. `bestaand` = de reservatie die bewerkt wordt. */
 async function controleerSlot(
   db: AdminDb,
-  restaurantId: string,
+  restaurant: { id: string; tijdzone: string },
   input: { datum: string; tijdslot: string; aantal: number; negeer_capaciteit: boolean },
   bestaand?: { datum: string; tijdslot: string; aantal_personen: number; status: Status },
 ) {
-  const ctx = await laadDagContext(db, restaurantId, input.datum);
+  const ctx = await laadDagContext(db, restaurant, input.datum);
   const slot = getSlotsVoorDatum(input.datum, ctx).find((s) => s.tijdslot === input.tijdslot);
   if (!slot) return { fout: `Er is geen shift op ${input.datum} om ${input.tijdslot}. Kies een kwartier binnen een actieve shift.` };
 
@@ -69,7 +69,7 @@ export async function maakReservatie(slug: string, formData: FormData): Promise<
   if (!parsed.success) return leesFout(parsed.error);
   const input = parsed.data;
 
-  const controle = await controleerSlot(db, restaurant.id, input);
+  const controle = await controleerSlot(db, restaurant, input);
   if ("fout" in controle) return { fout: controle.fout };
 
   const { data, error } = await db.rpc("create_reservation", {
@@ -112,7 +112,7 @@ export async function bewerkReservatie(slug: string, id: string, formData: FormD
     huidig.datum !== input.datum || huidig.tijdslot.slice(0, 5) !== input.tijdslot || huidig.aantal_personen !== input.aantal;
   let shiftId = huidig.shift_template_id;
   if (verplaatst) {
-    const controle = await controleerSlot(db, restaurant.id, input, huidig);
+    const controle = await controleerSlot(db, restaurant, input, huidig);
     if ("fout" in controle) return { fout: controle.fout };
     shiftId = controle.slot!.shiftId;
   }
@@ -151,7 +151,7 @@ export async function zetStatus(slug: string, id: string, status: Status): Promi
   if (huidig.status === "geannuleerd" && status !== "geannuleerd") {
     const controle = await controleerSlot(
       db,
-      restaurant.id,
+      restaurant,
       { datum: huidig.datum, tijdslot: huidig.tijdslot.slice(0, 5), aantal: huidig.aantal_personen, negeer_capaciteit: false },
       huidig,
     );

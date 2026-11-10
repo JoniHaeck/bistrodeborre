@@ -244,6 +244,32 @@ describe("platformbeheer (migratie 0003)", () => {
   });
 });
 
+describe("per-restaurant gedrag (migratie 0004)", () => {
+  it("een beheerder past naam, contact en tijdzone aan, maar niet slug, status of proefperiode", async () => {
+    await als("authenticated", LID_A);
+    const ok = await db.query("update restaurants set naam = 'Bistro de Borre', email = 'info@a.be', tijdzone = 'Europe/Amsterdam' where id = $1", [A]);
+    expect(ok.affectedRows).toBe(1);
+    await expect(db.query("update restaurants set status = 'opgezegd' where id = $1", [A])).rejects.toThrow(/Enkel het platform/);
+    await expect(db.query("update restaurants set slug = 'andere-slug' where id = $1", [A])).rejects.toThrow(/Enkel het platform/);
+    await expect(db.query("update restaurants set proef_tot = '2099-01-01' where id = $1", [A])).rejects.toThrow(/Enkel het platform/);
+  });
+
+  it("superadmin en service-role mogen de status wel wijzigen", async () => {
+    await als("service_role");
+    await db.query("insert into platform_admins (user_id) values ($1) on conflict do nothing", [SUPERADMIN]);
+    await als("authenticated", SUPERADMIN);
+    expect((await db.query("update restaurants set status = 'achterstallig' where id = $1", [A])).affectedRows).toBe(1);
+    await als("service_role");
+    expect((await db.query("update restaurants set status = 'actief', tijdzone = 'Europe/Brussels' where id = $1", [A])).affectedRows).toBe(1);
+  });
+
+  it("weigert een onbekende tijdzone", async () => {
+    await als("service_role");
+    await expect(db.query("update restaurants set tijdzone = 'Mars/Olympus' where id = $1", [A])).rejects.toThrow(/Ongeldige tijdzone/);
+    await expect(db.query("insert into restaurants (slug, naam, tijdzone) values ('tz-test', 'x', 'Europe/Brusels')")).rejects.toThrow(/Ongeldige tijdzone/);
+  });
+});
+
 describe("verwijderen", () => {
   it("een restaurant verwijderen ruimt al zijn data op", async () => {
     await als("service_role");

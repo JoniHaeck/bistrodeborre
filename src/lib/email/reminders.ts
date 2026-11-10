@@ -1,5 +1,5 @@
 import { createServiceRoleClient } from "@/lib/supabase/service";
-import { datumTijdslotNaarUtc, vandaagInBrussel } from "@/lib/time";
+import { datumTijdslotNaarUtc, vandaagIn } from "@/lib/time";
 import { laadMailInstellingen, stuurHerinnering } from "./send";
 
 const UUR = 3_600_000;
@@ -38,7 +38,7 @@ export async function verwerkHerinneringen(nu: Date = new Date()) {
  * gelijktijdige runs nooit dubbel versturen.
  */
 export async function verwerkHerinneringenVoorRestaurant(restaurantId: string, nu: Date = new Date()): Promise<Resultaat> {
-  const { ctx, herinneringenActief, herinneringUren } = await laadMailInstellingen(restaurantId);
+  const { ctx, herinneringenActief, herinneringUren, tijdzone } = await laadMailInstellingen(restaurantId);
   if (!herinneringenActief) return { verstuurd: 0, mislukt: 0 };
 
   const supabase = createServiceRoleClient();
@@ -49,14 +49,14 @@ export async function verwerkHerinneringenVoorRestaurant(restaurantId: string, n
     .eq("restaurant_id", restaurantId)
     .eq("status", "bevestigd")
     .is("reminder_sent_at", null)
-    .gte("datum", vandaagInBrussel(nu))
-    .lte("datum", vandaagInBrussel(tot));
+    .gte("datum", vandaagIn(tijdzone, nu))
+    .lte("datum", vandaagIn(tijdzone, tot));
   if (error) throw error;
 
   let verstuurd = 0;
   let mislukt = 0;
   for (const r of data ?? []) {
-    const start = datumTijdslotNaarUtc(r.datum, r.tijdslot.slice(0, 5)).getTime();
+    const start = datumTijdslotNaarUtc(r.datum, r.tijdslot.slice(0, 5), tijdzone).getTime();
     const venster = start - herinneringUren * UUR;
     const geboektBinnenVenster = new Date(r.created_at).getTime() >= venster;
     if (start <= nu.getTime() || venster > nu.getTime() || geboektBinnenVenster) continue;

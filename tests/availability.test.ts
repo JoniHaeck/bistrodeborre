@@ -48,6 +48,7 @@ function ctx(over: Partial<AvailabilityContext> = {}): AvailabilityContext {
     uitzonderingen: [],
     bezetting: {},
     nu: NU,
+    tijdzone: "Europe/Brussels",
     ...over,
   };
 }
@@ -185,5 +186,28 @@ describe("valideerReservatie", () => {
     const c = ctx({ bezetting: { [`${DATUM}|12:00`]: 6 } });
     expect(valideerReservatie({ ...basis, aantal: 3 }, c)).toMatchObject({ code: "volzet" });
     expect(valideerReservatie({ ...basis, aantal: 2 }, c).ok).toBe(true);
+  });
+});
+
+describe("tijdzone van het restaurant", () => {
+  const woensdag = [{ ...MIDDAG, weekdag: 3, start_tijd: "09:00", eind_tijd: "13:00" }];
+
+  it("beoordeelt verleden slots in de lokale tijd van het restaurant", () => {
+    // 08:00 UTC = 10:00 in Brussel maar 09:00 in Londen.
+    const londen = getSlotsVoorDatum("2026-10-21", ctx({ shiften: woensdag, tijdzone: "Europe/London", instellingen: { ...ctx().instellingen, min_voorboekingsuren: 0 } }));
+    const brussel = getSlotsVoorDatum("2026-10-21", ctx({ shiften: woensdag, instellingen: { ...ctx().instellingen, min_voorboekingsuren: 0 } }));
+    expect(brussel.find((s) => s.tijdslot === "09:30")!.gesloten).toBe("verleden");
+    expect(londen.find((s) => s.tijdslot === "09:30")!.gesloten).toBeUndefined();
+    expect(londen.find((s) => s.tijdslot === "08:45")).toBeUndefined();
+    expect(londen.find((s) => s.tijdslot === "09:00")!.gesloten).toBeUndefined();
+  });
+
+  it("begint de boekbare dagen op 'vandaag' van het restaurant", () => {
+    // 22:30 UTC op 21 oktober: in Brussel al 22 oktober, in Londen nog 21 oktober.
+    const laat = new Date("2026-10-21T22:30:00Z");
+    const elkeDag = [0, 1, 2, 3, 4, 5, 6].map((d) => ({ ...AVOND, id: `a${d}`, weekdag: d, start_tijd: "23:45", eind_tijd: "23:45" }));
+    const instellingen = { ...ctx().instellingen, min_voorboekingsuren: 0, boekingshorizon_dagen: 1 };
+    expect(getBeschikbareDagen(2, ctx({ nu: laat, shiften: elkeDag, instellingen }))[0]).toBe("2026-10-22");
+    expect(getBeschikbareDagen(2, ctx({ nu: laat, shiften: elkeDag, instellingen, tijdzone: "Europe/London" }))[0]).toBe("2026-10-21");
   });
 });

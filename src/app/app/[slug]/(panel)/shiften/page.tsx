@@ -5,10 +5,10 @@ import { adminContext } from "@/lib/admin/auth";
 import { WEEKDAGEN } from "@/lib/admin/data";
 import { genereerTijdsloten } from "@/lib/availability";
 import { formatDatum } from "@/lib/format";
-import { vandaagInBrussel } from "@/lib/time";
+import { vandaagIn } from "@/lib/time";
 import { bewaarShift, maakUitzondering, verwijderShift, verwijderUitzondering } from "./actions";
 
-export const metadata: Metadata = { title: "Shiften — Bistro de Borre" };
+export const metadata: Metadata = { title: "Shiften" };
 
 type ShiftRij = {
   id?: string;
@@ -60,7 +60,7 @@ export default async function ShiftenPage({ params }: PageProps<"/app/[slug]/shi
   await connection();
   const { slug } = await params;
   const { db, restaurant } = await adminContext(slug);
-  const vandaag = vandaagInBrussel();
+  const vandaag = vandaagIn(restaurant.tijdzone);
   const [{ data: shiften }, { data: uitzonderingen }, { data: inst }] = await Promise.all([
     db.from("shift_templates").select("*").eq("restaurant_id", restaurant.id).order("start_tijd"),
     db.from("date_exceptions").select("*").eq("restaurant_id", restaurant.id).gte("datum", vandaag).order("datum"),

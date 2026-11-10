@@ -15,7 +15,7 @@ eerste klant. Het datamodel wordt meteen klaargemaakt voor de latere Google-inte
 | Scope v1 | **Fase 1–4.** Restaurants worden door Joni aangemaakt (script), facturatie manueel. Selfservice-registratie, Stripe en GDPR-automatisatie volgen later. |
 | Rollen | Enkel `eigenaar` en `beheerder`. `personeel` later. |
 | Prijs | **€65 excl. btw per maand** per restaurant. |
-| Productnaam + domein | Nog te kiezen. Hieronder `<product>` / `app.<product>.be`. Pas nodig in fase 4. |
+| Productnaam + domein | Werknaam **Tafelvrij** (2026-11-10), op één plek: `src/lib/product.ts`. Domein nog te registreren. |
 
 ---
 
@@ -185,7 +185,19 @@ Oorspronkelijk plan:
 - `embed.js` herschrijven: verplicht `data-restaurant="slug"`, berichten `<product>-widget-hoogte` /
   `-sluit`, globale API `window.<Product>.open()`. Geen compat-laag nodig (Borre is nog niet live).
 
-### Fase 4: Per-restaurant gedrag (2 d)
+### Fase 4: Per-restaurant gedrag (2 d) ✅ klaar (branch `fase-4`)
+
+Gedaan: tijdzone per restaurant in alle datum-/tijdlogica (`vandaagIn`, `datumTijdslotNaarUtc`,
+`formatTijdstip`, beschikbaarheid, herinneringen) met tests in een andere zone; mails vertrekken als
+`"<Restaurant> via Tafelvrij"` met reply-to naar het contactadres van het restaurant (melding aan het
+restaurant: reply-to = gast), logo en accentkleur in de mail; neutrale Tafelvrij-huisstijl, restaurants
+krijgen enkel accentkleur, lettertype en logo (klasse `.thema`); logo-upload naar Storage (bucket
+`logos`, server-side na RLS-controle); tijdzone en contactadres in de instellingen; geen hardcoded
+"Bistro de Borre" meer in de app. Migratie `0004_per_restaurant.sql`: bucket, tijdzonecontrole en een
+trigger die verhindert dat beheerders zelf `status`, `proef_tot` of `slug` wijzigen (dat kon via RLS).
+Bij uitrol: `EMAIL_FROM_ADRES` instellen, platformdomein in Resend verifiëren.
+
+Oorspronkelijk plan:
 - **Tijdzone:** `src/lib/time.ts` en `src/lib/format.ts` krijgen een `tijdzone`-parameter in plaats
   van de constante; `tests/time.test.ts` en `tests/availability.test.ts` uitbreiden met een andere zone.
 - **Mail** (`src/lib/email/send.ts`, templates): afzender `"<Restaurantnaam> via <Product>"
@@ -249,4 +261,4 @@ en de Real-time Updates API komen pas na aanvaarding als Google-partner.
   service-key beperkt tot één map, en isolatietests in CI.
 
 ## 5. Open vragen
-1. Productnaam en domein.
+1. Definitieve productnaam (werknaam Tafelvrij) en domein registreren.

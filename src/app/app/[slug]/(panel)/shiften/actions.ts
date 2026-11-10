@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { ActieState } from "@/components/admin/ActieFormulier";
 import { adminContext } from "@/lib/admin/auth";
 import { weekdagVan } from "@/lib/availability";
-import { vandaagInBrussel } from "@/lib/time";
+import { vandaagIn } from "@/lib/time";
 
 const vinkje = z.preprocess((v) => v === "on" || v === "ja", z.boolean());
 const tijd = z.string().regex(/^\d{2}:\d{2}/, "Ongeldig uur.").transform((v) => v.slice(0, 5));
@@ -39,7 +39,7 @@ export async function bewaarShift(slug: string, formData: FormData): Promise<Act
         .select("datum, tijdslot, aantal_personen")
         .eq("restaurant_id", restaurant.id)
         .eq("shift_template_id", s.id)
-        .gte("datum", vandaagInBrussel())
+        .gte("datum", vandaagIn(restaurant.tijdzone))
         .in("status", nietGeannuleerd.split(",") as never),
     ]);
     const reservaties = toekomst ?? [];

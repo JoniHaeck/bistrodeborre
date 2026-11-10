@@ -1,4 +1,5 @@
 import { formatDatum } from "@/lib/format";
+import { PRODUCT_NAAM } from "@/lib/product";
 
 export type MailReservatie = {
   voornaam: string;
@@ -13,7 +14,17 @@ export type MailReservatie = {
   cancel_token: string;
 };
 
-export type MailContext = { restaurantNaam: string; siteUrl: string; kleur?: string };
+export type MailContext = {
+  restaurantNaam: string;
+  siteUrl: string;
+  kleur?: string;
+  /** Publieke URL van het logo (https). */
+  logoUrl?: string | null;
+  /** Reply-to voor mails aan gasten: het adres van het restaurant. */
+  antwoordAan?: string | null;
+};
+
+const KLEUR = /^#[0-9a-fA-F]{6}$/;
 
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -38,12 +49,19 @@ ${r.opmerking ? rij("Opmerking", r.opmerking) : ""}
 }
 
 function layout(c: MailContext, inhoud: string) {
-  return `<!doctype html><html lang="nl"><body style="margin:0;background:#f3f3f0;font-family:'Open Sans',Arial,sans-serif;color:#404041">
+  const kleur = c.kleur && KLEUR.test(c.kleur) ? c.kleur : "#555555";
+  const titel = `<h1 style="font-family:Georgia,serif;font-weight:400;font-size:24px;color:#222;margin:0 0 16px">${esc(c.restaurantNaam)}</h1>`;
+  const kop = c.logoUrl && /^https:\/\//.test(c.logoUrl)
+    ? `<img src="${esc(c.logoUrl)}" alt="${esc(c.restaurantNaam)}" style="display:block;max-height:64px;max-width:240px;margin:0 0 16px" />`
+    : titel;
+  return `<!doctype html><html lang="nl"><body style="margin:0;background:#f4f4f2;font-family:Arial,Helvetica,sans-serif;color:#333">
 <div style="max-width:560px;margin:0 auto;padding:24px">
-<div style="background:#fff;border-radius:5px;padding:24px;border-top:4px solid ${c.kleur ?? "#8b8a69"}">
-<h1 style="font-family:'DM Serif Text',Georgia,serif;font-weight:400;font-size:24px;color:#38372a;margin:0 0 16px">${esc(c.restaurantNaam)}</h1>
+<div style="background:#fff;border-radius:5px;padding:24px;border-top:4px solid ${kleur}">
+${kop}
 ${inhoud}
-</div></div></body></html>`;
+</div>
+<p style="margin:16px 0 0;text-align:center;font-size:12px;color:#888">Reservatie via ${PRODUCT_NAAM}</p>
+</div></body></html>`;
 }
 
 function annuleerBlok(r: MailReservatie, c: MailContext) {

@@ -1,4 +1,4 @@
-import { datumTijdslotNaarUtc, vandaagInBrussel } from "@/lib/time";
+import { datumTijdslotNaarUtc, vandaagIn } from "@/lib/time";
 
 export type Instellingen = {
   slot_minuten: number;
@@ -36,6 +36,8 @@ export type AvailabilityContext = {
   uitzonderingen: Uitzondering[];
   bezetting: Bezetting;
   nu: Date;
+  /** IANA-tijdzone van het restaurant; datums en tijdsloten zijn lokale tijd in deze zone. */
+  tijdzone: string;
 };
 
 export type Slot = {
@@ -108,8 +110,8 @@ function geldtVoorShift(u: Uitzondering, shiftId: string): boolean {
 
 /** Alle slots van een datum met capaciteit, bezetting en eventuele sluitingsreden. */
 export function getSlotsVoorDatum(datum: string, ctx: AvailabilityContext): Slot[] {
-  const { instellingen, shiften, uitzonderingen, bezetting, nu } = ctx;
-  const vandaag = vandaagInBrussel(nu);
+  const { instellingen, shiften, uitzonderingen, bezetting, nu, tijdzone } = ctx;
+  const vandaag = vandaagIn(tijdzone, nu);
   const laatsteDag = voegDagenToe(vandaag, instellingen.boekingshorizon_dagen);
   const dagUitzonderingen = uitzonderingen.filter((u) => u.datum === datum);
   const weekdag = weekdagVan(datum);
@@ -146,8 +148,8 @@ export function getSlotsVoorDatum(datum: string, ctx: AvailabilityContext): Slot
       if (gesloten) reden = "gesloten";
       else if (shiftGeblokkeerd || geblokkeerdeSloten.has(tijdslot)) reden = "geblokkeerd";
       else if (datum > laatsteDag) reden = "buiten_horizon";
-      else if (datumTijdslotNaarUtc(datum, tijdslot).getTime() < nu.getTime()) reden = "verleden";
-      else if (datumTijdslotNaarUtc(datum, tijdslot).getTime() < minimum) reden = "te_kort_dag";
+      else if (datumTijdslotNaarUtc(datum, tijdslot, tijdzone).getTime() < nu.getTime()) reden = "verleden";
+      else if (datumTijdslotNaarUtc(datum, tijdslot, tijdzone).getTime() < minimum) reden = "te_kort_dag";
 
       slots.push({
         datum,
@@ -175,7 +177,7 @@ export function getBeschikbareSlots(
 
 /** Datums (vanaf vandaag tot de boekingshorizon) met minstens één beschikbaar slot voor de groep. */
 export function getBeschikbareDagen(aantal: number, ctx: AvailabilityContext): string[] {
-  const vandaag = vandaagInBrussel(ctx.nu);
+  const vandaag = vandaagIn(ctx.tijdzone, ctx.nu);
   const dagen: string[] = [];
   for (let i = 0; i <= ctx.instellingen.boekingshorizon_dagen; i++) {
     const datum = voegDagenToe(vandaag, i);

@@ -35,7 +35,15 @@ function piep() {
   }
 }
 
-export function NotificatieBel({ restaurantId, basis }: { restaurantId: string; basis: string }) {
+export function NotificatieBel({
+  restaurantId,
+  tijdzone,
+  basis,
+}: {
+  restaurantId: string;
+  tijdzone: string;
+  basis: string;
+}) {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [meldingen, setMeldingen] = useState<Melding[]>([]);
@@ -137,7 +145,7 @@ export function NotificatieBel({ restaurantId, basis }: { restaurantId: string; 
         {ongelezen > 0 && (
           <span
             aria-hidden="true"
-            className="absolute -right-2 -top-2 rounded-full bg-[#8b8a69] px-1.5 text-xs font-bold text-black"
+            className="absolute -right-2 -top-2 rounded-full bg-[var(--primair)] px-1.5 text-xs font-bold text-[var(--primair-tekst)]"
           >
             {ongelezen}
           </span>
@@ -165,7 +173,7 @@ export function NotificatieBel({ restaurantId, basis }: { restaurantId: string; 
           <ul className="mt-3 max-h-80 space-y-2 overflow-y-auto">
             {meldingen.length === 0 && <li className="text-sm text-neutral-600">Nog geen meldingen.</li>}
             {meldingen.map((m) => (
-              <li key={m.id} className={`rounded border p-2 text-sm ${m.gelezen ? "border-neutral-200" : "border-[#8b8a69] bg-[#f3f3f0]"}`}>
+              <li key={m.id} className={`rounded border p-2 text-sm ${m.gelezen ? "border-neutral-200" : "border-[var(--primair)] bg-[var(--primair-licht)]"}`}>
                 <p className="font-medium">{TYPE_LABEL[m.type]}</p>
                 {m.reservations ? (
                   <Link
@@ -182,7 +190,7 @@ export function NotificatieBel({ restaurantId, basis }: { restaurantId: string; 
                 ) : (
                   <p>Reservatie verwijderd</p>
                 )}
-                <p className="text-xs text-neutral-600">{formatTijdstip(m.created_at)}</p>
+                <p className="text-xs text-neutral-600">{formatTijdstip(m.created_at, tijdzone)}</p>
                 {!m.gelezen && (
                   <button type="button" className="text-xs underline" onClick={() => markeer(m.id)}>
                     Markeer als gelezen

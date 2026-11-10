@@ -9,7 +9,7 @@ import { LOG_LABEL, STATUSSEN, STATUS_LABEL } from "@/lib/admin/data";
 import { formatDatum, formatTijdstip } from "@/lib/format";
 import { bewerkReservatie, stuurHerinneringAdmin, zetStatus } from "../actions";
 
-export const metadata: Metadata = { title: "Reservatie — Bistro de Borre" };
+export const metadata: Metadata = { title: "Reservatie" };
 
 export default async function ReservatiePage({ params }: PageProps<"/app/[slug]/reservaties/[id]">) {
   const { slug, id } = await params;
@@ -36,7 +36,7 @@ export default async function ReservatiePage({ params }: PageProps<"/app/[slug]/
           <strong>{STATUS_LABEL[r.status]}</strong> · bron: {r.bron}
         </p>
         <p className="text-sm text-neutral-600">
-          Herinnering: {r.reminder_sent_at ? `verstuurd op ${formatTijdstip(r.reminder_sent_at)}` : "nog niet verstuurd"}
+          Herinnering: {r.reminder_sent_at ? `verstuurd op ${formatTijdstip(r.reminder_sent_at, restaurant.tijdzone)}` : "nog niet verstuurd"}
         </p>
       </div>
 
@@ -85,7 +85,7 @@ export default async function ReservatiePage({ params }: PageProps<"/app/[slug]/
                   {LOG_LABEL[l.actie] ?? l.actie}
                   {extra && <span className="text-neutral-600"> ({extra})</span>}
                 </span>
-                <span className="text-neutral-600">{formatTijdstip(l.created_at)}</span>
+                <span className="text-neutral-600">{formatTijdstip(l.created_at, restaurant.tijdzone)}</span>
               </li>
             );
           })}

@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { z } from "zod";
 import { formatDatum } from "@/lib/format";
-import { isInVerleden } from "@/lib/time";
+import { STANDAARD_TIJDZONE, isInVerleden } from "@/lib/time";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { annuleerReservatie } from "./actions";
 
@@ -35,7 +35,7 @@ async function Inhoud({ params }: { params: Promise<{ token: string }> }) {
 
   const { data: r } = await createServiceRoleClient()
     .from("reservations")
-    .select("datum, tijdslot, aantal_personen, menu, status, voornaam, restaurants(naam)")
+    .select("datum, tijdslot, aantal_personen, menu, status, voornaam, restaurants(naam, tijdzone)")
     .eq("cancel_token", token)
     .maybeSingle();
   if (!r) return onbekend;
@@ -57,7 +57,7 @@ async function Inhoud({ params }: { params: Promise<{ token: string }> }) {
       </div>
     );
   }
-  if (isInVerleden(r.datum, tijd)) {
+  if (isInVerleden(r.datum, tijd, r.restaurants?.tijdzone ?? STANDAARD_TIJDZONE)) {
     return <div>{samenvatting}<p className="mt-3">Deze reservatie ligt in het verleden en kan niet meer geannuleerd worden.</p></div>;
   }
 

@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ActieFormulier } from "@/components/admin/ActieFormulier";
+import { PRODUCT_NAAM } from "@/lib/product";
 import { login } from "./actions";
 
-export const metadata: Metadata = { title: "Beheer — inloggen", robots: { index: false } };
+export const metadata: Metadata = { title: "Inloggen", robots: { index: false } };
 
 export default function LoginPage({ searchParams }: { searchParams: Promise<{ volgende?: string }> }) {
   return (
     <main className="mx-auto w-full max-w-sm flex-1 px-4 py-12">
+      <p className="text-sm font-semibold uppercase tracking-wide text-[var(--primair)]">{PRODUCT_NAAM}</p>
       <h1 className="text-2xl font-semibold">Inloggen</h1>
       <Suspense fallback={<p role="status">Laden…</p>}>
         <Formulier searchParams={searchParams} />

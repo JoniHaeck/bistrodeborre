@@ -1,6 +1,9 @@
-# Bistro de Borre — Reservatie-app
+# Tafelvrij — reservaties voor restaurants
 
-Lichtgewicht reservatiesysteem voor Bistro de Borre. Gasten reserveren een
+"Tafelvrij" is een werknaam (aan te passen in `src/lib/product.ts`). Bistro de Borre is het
+eerste restaurant.
+
+Lichtgewicht multi-tenant reservatiesysteem voor restaurants. Gasten reserveren een
 kwartierslot en geven aan of ze het menu nemen, zodat de keuken op voorhand
 weet hoeveel personen en menu's er verwacht worden.
 
@@ -152,14 +155,14 @@ insert into platform_admins (user_id) select id from auth.users where email = 'j
    | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | publishable/anon key |
    | `SUPABASE_SECRET_KEY` | secret/service_role key (enkel server-side) |
    | `RESEND_API_KEY` | Resend API-key |
-   | `EMAIL_FROM` | `Bistro de Borre <reservaties@jouwdomein.be>` |
+   | `EMAIL_FROM_ADRES` | `reservaties@<platformdomein>`: één geverifieerd adres voor alle restaurants. Mails vertrekken als `"<Restaurant> via Tafelvrij" <adres>`, antwoorden gaan naar het contactadres van het restaurant (reply-to). Een oud `EMAIL_FROM="Naam <adres>"` werkt ook. |
    | `CRON_SECRET` | lange willekeurige string; Vercel stuurt die mee als `Authorization: Bearer` |
    | `NEXT_PUBLIC_SITE_URL` | `https://<jouw-domein>` (voor annuleerlinks) |
 
    Wachtwoorden en keys horen enkel in Vercel/`.env.local`, nooit in de code.
 5. **Cron**: `vercel.json` plant `/api/cron/reminders` elk uur. Uurlijkse crons vereisen
    Vercel Pro; op Hobby kan enkel dagelijks.
-6. **Resend-domein**: verifieer een domein in Resend en pas `EMAIL_FROM` aan. Zonder
+6. **Resend-domein**: verifieer het platformdomein in Resend en zet `EMAIL_FROM_ADRES`. Zonder
    domein mailt Resend enkel naar het adres van het eigen account.
 7. **Controle**: `/bistro-de-borre` en `/w/bistro-de-borre` laden, `/login` laat je inloggen, een
    testreservatie geeft een mail en een melding in de bel.

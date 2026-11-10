@@ -4,9 +4,9 @@ import Link from "next/link";
 import { adminContext } from "@/lib/admin/auth";
 import { STATUSSEN, STATUS_LABEL, type Status } from "@/lib/admin/data";
 import { formatDatum } from "@/lib/format";
-import { vandaagInBrussel } from "@/lib/time";
+import { vandaagIn } from "@/lib/time";
 
-export const metadata: Metadata = { title: "Reservaties — Bistro de Borre" };
+export const metadata: Metadata = { title: "Reservaties" };
 
 type Params = Promise<Record<string, string | string[] | undefined>>;
 const eerste = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
@@ -17,7 +17,7 @@ export default async function ReservatiesPage({ params, searchParams }: { params
   const { db, restaurant } = await adminContext(slug);
   const basis = `/app/${restaurant.slug}`;
   const p = await searchParams;
-  const van = eerste(p.van) || vandaagInBrussel();
+  const van = eerste(p.van) || vandaagIn(restaurant.tijdzone);
   const tot = eerste(p.tot);
   const shift = eerste(p.shift);
   const status = eerste(p.status);

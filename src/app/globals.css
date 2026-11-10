@@ -3,26 +3,29 @@
 @font-face { font-family: "Open Sans"; font-weight: 400; font-style: normal; font-display: swap; src: url("/fonts/OpenSans-Regular.woff2") format("woff2"); }
 @font-face { font-family: "Open Sans"; font-weight: 600; font-style: normal; font-display: swap; src: url("/fonts/OpenSans-SemiBold.woff2") format("woff2"); }
 @font-face { font-family: "Open Sans"; font-weight: 700; font-style: normal; font-display: swap; src: url("/fonts/OpenSans-Bold.woff2") format("woff2"); }
-@font-face { font-family: "DM Serif Text"; font-weight: 400; font-style: normal; font-display: swap; src: url("/fonts/DMSerifText-Regular.woff2") format("woff2"); }
-@font-face { font-family: "DM Serif Text"; font-weight: 400; font-style: italic; font-display: swap; src: url("/fonts/DMSerifText-Italic.woff2") format("woff2"); }
-
-/* Huisstijl bistrodeborre.be */
+/*
+ * Huisstijl van het platform (Tafelvrij). Restaurants overschrijven enkel --primair (en het
+ * lettertype) op een element met de klasse .thema; de afgeleide tinten volgen automatisch.
+ */
 :root {
   color-scheme: light;
   --background: #ffffff;
-  --foreground: #404041;
-  --primair: #8b8a69;
-  --primair-donker: #38372a;
-  --primair-licht: #f3f3f0;
-  --primair-rand: #dcdcd2;
-  --secundair: #dcae8d;
+  --foreground: #2b2d2c;
+  --primair: #2f6f5e;
+  --primair-tekst: #ffffff;
+}
+
+:root,
+.thema {
+  --primair-donker: color-mix(in srgb, var(--primair) 60%, #000);
+  --primair-licht: color-mix(in srgb, var(--primair) 7%, #fff);
+  --primair-rand: color-mix(in srgb, var(--primair) 28%, #fff);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: "Open Sans", system-ui, sans-serif;
-  --font-serif: "DM Serif Text", Georgia, serif;
 }
 
 body {
@@ -33,8 +36,8 @@ body {
 }
 
 h1, h2, h3 {
-  font-family: "DM Serif Text", Georgia, serif;
-  font-weight: 400;
+  font-family: inherit;
+  font-weight: 600;
   color: var(--primair-donker);
 }
 
@@ -51,7 +54,7 @@ textarea {
   display: inline-block;
   border-radius: 0.3125rem;
   background: var(--primair);
-  color: #000;
+  color: var(--primair-tekst);
   padding: 0.5rem 0.9rem;
   font-size: 0.9rem;
   font-weight: 600;

@@ -6,8 +6,9 @@ import { Suspense } from "react";
 import { ActieFormulier } from "@/components/admin/ActieFormulier";
 import { ingelogdeDb, isSuperadmin } from "@/lib/admin/auth";
 import { formatDatum } from "@/lib/format";
-import { vandaagInBrussel } from "@/lib/time";
+import { STANDAARD_TIJDZONE, vandaagIn } from "@/lib/time";
 import { logout } from "@/app/login/actions";
+import { PRODUCT_NAAM } from "@/lib/product";
 import { nieuwRestaurant, voegBeheerderToe, zetRestaurantStatus } from "./actions";
 
 export const metadata: Metadata = { title: "Platform", robots: { index: false } };
@@ -35,7 +36,7 @@ async function Inhoud() {
   const db = await ingelogdeDb();
   if (!(await isSuperadmin(db))) notFound();
 
-  const vandaag = vandaagInBrussel();
+  const vandaag = vandaagIn(STANDAARD_TIJDZONE);
   const [{ data: restaurants }, { data: leden }, { data: komend }] = await Promise.all([
     db.from("restaurants").select("id, slug, naam, status, email, created_at").order("naam"),
     db.from("memberships").select("restaurant_id, rol, user_id"),
@@ -49,7 +50,7 @@ async function Inhoud() {
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">Platform — alle restaurants</h1>
+        <h1 className="text-2xl font-semibold">{PRODUCT_NAAM}: alle restaurants</h1>
         <form action={logout}>
           <button type="submit" className="btn-sec">
             Uitloggen

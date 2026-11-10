@@ -3,8 +3,9 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { NotificatieBel } from "@/components/admin/NotificatieBel";
 import { adminContext, isSuperadmin } from "@/lib/admin/auth";
-import { vandaagInBrussel } from "@/lib/time";
+import { vandaagIn } from "@/lib/time";
 import { logout } from "@/app/login/actions";
+import { PRODUCT_NAAM } from "@/lib/product";
 
 export default function PanelLayout({ children, params }: LayoutProps<"/app/[slug]">) {
   return (
@@ -20,7 +21,7 @@ async function Shell({ children, params }: { children: React.ReactNode; params: 
   const { db, restaurant } = await adminContext(slug);
   const superadmin = await isSuperadmin(db);
   const basis = `/app/${restaurant.slug}`;
-  const vandaag = vandaagInBrussel();
+  const vandaag = vandaagIn(restaurant.tijdzone);
   const links = [
     { href: `${basis}/dashboard`, label: "Dashboard" },
     { href: `${basis}/reservaties`, label: "Reservaties" },
@@ -30,10 +31,11 @@ async function Shell({ children, params }: { children: React.ReactNode; params: 
   ];
   return (
     <>
-      <header className="border-b border-[#dcdcd2] bg-[#f3f3f0] print:hidden">
+      <header className="border-b border-[var(--primair-rand)] bg-[var(--primair-licht)] print:hidden">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
-          <Link href="/app" className="font-serif text-xl text-[#38372a]">
-            {restaurant.naam}
+          <Link href="/app" className="flex items-baseline gap-2 text-[var(--primair-donker)]">
+            <span className="text-xl font-semibold">{restaurant.naam}</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{PRODUCT_NAAM}</span>
           </Link>
           <nav aria-label="Beheer" className="flex flex-1 flex-wrap gap-x-4 gap-y-1">
             {links.map((l) => (
@@ -47,7 +49,7 @@ async function Shell({ children, params }: { children: React.ReactNode; params: 
               </Link>
             )}
           </nav>
-          <NotificatieBel restaurantId={restaurant.id} basis={basis} />
+          <NotificatieBel restaurantId={restaurant.id} tijdzone={restaurant.tijdzone} basis={basis} />
           <form action={logout}>
             <button type="submit" className="btn-sec">
               Uitloggen

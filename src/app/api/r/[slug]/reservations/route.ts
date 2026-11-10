@@ -29,7 +29,7 @@ export async function POST(request: NextRequest, { params }: RouteContext<"/api/
   }
 
   try {
-    const ctx = await laadAvailabilityContext(restaurant.id);
+    const ctx = await laadAvailabilityContext(restaurant);
     const resultaat = valideerReservatie(input, ctx);
     if (!resultaat.ok) {
       const status = resultaat.code === "volzet" ? 409 : 422;

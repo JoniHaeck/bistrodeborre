@@ -16,9 +16,9 @@ type Props = {
 };
 
 const veldKlasse =
-  "mt-1 block w-full rounded-[5px] border border-[#8b8a69] bg-white px-3 py-2 text-base text-[#404041] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--kleur-primair)]";
+  "mt-1 block w-full rounded-[5px] border border-[var(--primair)] bg-white px-3 py-2 text-base text-[var(--foreground)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primair)]";
 const api = (slug: string) => `/api/r/${encodeURIComponent(slug)}`;
-const labelKlasse = "block text-sm font-semibold text-[#404041]";
+const labelKlasse = "block text-sm font-semibold text-[var(--foreground)]";
 
 export function ReservatieFormulier({ slug, initieleDagen, vandaag, initieelAantal, maxGroepsgrootte, menuLink }: Props) {
   const [aantal, setAantal] = useState(initieelAantal);
@@ -136,7 +136,7 @@ export function ReservatieFormulier({ slug, initieleDagen, vandaag, initieelAant
 
   if (klaar) {
     return (
-      <div role="status" className="rounded-[5px] bg-[#f3f3f0] p-6">
+      <div role="status" className="rounded-[5px] bg-[var(--primair-licht)] p-6">
         <h2 className="text-2xl">Bedankt{klaar.voornaam ? `, ${klaar.voornaam}` : ""}!</h2>
         <p className="mt-3">
           Uw reservatie voor <strong>{klaar.aantal} {klaar.aantal === 1 ? "persoon" : "personen"}</strong> op{" "}
@@ -237,13 +237,13 @@ export function ReservatieFormulier({ slug, initieleDagen, vandaag, initieelAant
           {fouten.tijdslot && <p className="mt-1 text-sm text-red-800">{fouten.tijdslot}</p>}
         </Accordeon>
 
-        <div className="rounded-[5px] bg-[#f3f3f0] p-4">
+        <div className="rounded-[5px] bg-[var(--primair-licht)] p-4">
           <label className="flex items-start gap-3">
             <input
               type="checkbox"
               checked={menu}
               onChange={(e) => setMenu(e.target.checked)}
-              className="mt-1 h-5 w-5 accent-[var(--kleur-primair)]"
+              className="mt-1 h-5 w-5 accent-[var(--primair)]"
             />
             <span>
               <span className="font-semibold">Wij nemen het menu</span>
@@ -269,7 +269,7 @@ export function ReservatieFormulier({ slug, initieleDagen, vandaag, initieelAant
 
       {/* Stap 2: contactgegevens */}
       <div hidden={stap !== "contact"}>
-        <div className="mb-5 rounded-[5px] bg-[#f3f3f0] p-4">
+        <div className="mb-5 rounded-[5px] bg-[var(--primair-licht)] p-4">
           <div className="flex items-baseline justify-between">
             <h2 className="text-xl">Uw reservering</h2>
             <button type="button" onClick={() => setStap("kies")} className="text-sm underline">
@@ -332,7 +332,7 @@ export function ReservatieFormulier({ slug, initieleDagen, vandaag, initieelAant
 }
 
 const hoofdKnop =
-  "w-full rounded-[5px] bg-[var(--kleur-primair)] px-4 py-3 text-base font-semibold text-[var(--kleur-primair-tekst,#000)] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--kleur-primair)]";
+  "w-full rounded-[5px] bg-[var(--primair)] px-4 py-3 text-base font-semibold text-[var(--primair-tekst)] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primair)]";
 
 function Accordeon({
   id, icoon, titel, open, onToggle, uitgeschakeld, children,
@@ -341,7 +341,7 @@ function Accordeon({
   uitgeschakeld?: boolean; children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[5px] border border-[#dcdcd2] bg-white">
+    <div className="rounded-[5px] border border-[var(--primair-rand)] bg-white">
       <button
         type="button"
         id={`${id}-knop`}
@@ -349,13 +349,13 @@ function Accordeon({
         aria-controls={`${id}-paneel`}
         disabled={uitgeschakeld}
         onClick={onToggle}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left font-semibold disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-[var(--kleur-primair)]"
+        className="flex w-full items-center gap-3 px-4 py-3 text-left font-semibold disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-[var(--primair)]"
       >
         {icoon}
         <span className="flex-1">{titel}</span>
         <span aria-hidden="true" className={`transition-transform ${open ? "rotate-180" : ""}`}>⌄</span>
       </button>
-      <div id={`${id}-paneel`} role="region" aria-labelledby={`${id}-knop`} hidden={!open} className="border-t border-[#dcdcd2] p-4">
+      <div id={`${id}-paneel`} role="region" aria-labelledby={`${id}-knop`} hidden={!open} className="border-t border-[var(--primair-rand)] p-4">
         {children}
       </div>
     </div>
@@ -369,10 +369,10 @@ function Keuze({ actief, onClick, children }: { actief: boolean; onClick: () => 
       role="radio"
       aria-checked={actief}
       onClick={onClick}
-      className={`rounded-[5px] border px-2 py-2 text-center text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--kleur-primair)] ${
+      className={`rounded-[5px] border px-2 py-2 text-center text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primair)] ${
         actief
-          ? "border-[var(--kleur-primair)] bg-[var(--kleur-primair)] text-[var(--kleur-primair-tekst,#000)]"
-          : "border-[#dcdcd2] bg-white hover:bg-[#f3f3f0]"
+          ? "border-[var(--primair)] bg-[var(--primair)] text-[var(--primair-tekst)]"
+          : "border-[var(--primair-rand)] bg-white hover:bg-[var(--primair-licht)]"
       }`}
     >
       {children}

@@ -1,12 +1,16 @@
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { normaliseerTijd, slotSleutel, voegDagenToe, type AvailabilityContext } from "@/lib/availability";
-import { vandaagInBrussel } from "@/lib/time";
+import { vandaagIn } from "@/lib/time";
 
 /** Laadt alles wat de beschikbaarheidslogica nodig heeft voor één restaurant. Enkel server-side gebruiken. */
-export async function laadAvailabilityContext(restaurantId: string): Promise<AvailabilityContext> {
+export async function laadAvailabilityContext(restaurant: {
+  id: string;
+  tijdzone: string;
+}): Promise<AvailabilityContext> {
+  const { id: restaurantId, tijdzone } = restaurant;
   const supabase = createServiceRoleClient();
   const nu = new Date();
-  const vandaag = vandaagInBrussel(nu);
+  const vandaag = vandaagIn(tijdzone, nu);
 
   const { data: instellingen, error: instErr } = await supabase
     .from("settings")
@@ -37,6 +41,7 @@ export async function laadAvailabilityContext(restaurantId: string): Promise<Ava
     uitzonderingen: uitzonderingen.data,
     bezetting,
     nu,
+    tijdzone,
   };
 }
 

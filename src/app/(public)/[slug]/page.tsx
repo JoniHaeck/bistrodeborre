@@ -3,11 +3,15 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { FormulierLader } from "@/components/public/FormulierLader";
-import { publiekRestaurant } from "@/lib/server/restaurant";
+import { PRODUCT_NAAM } from "@/lib/product";
+import { laadRestaurantOpSlug, publiekRestaurant } from "@/lib/server/restaurant";
 
-export const metadata: Metadata = {
-  title: "Reserveren",
-};
+export async function generateMetadata({ params }: PageProps<"/[slug]">): Promise<Metadata> {
+  const restaurant = await laadRestaurantOpSlug((await params).slug);
+  return restaurant
+    ? { title: `Reserveren bij ${restaurant.naam}`, description: `Reserveer online een tafel bij ${restaurant.naam}.` }
+    : { title: "Reserveren" };
+}
 
 /** Publieke boekingspagina van één restaurant: /{slug}. */
 export default function ReserverenPage({ params }: PageProps<"/[slug]">) {
@@ -27,13 +31,8 @@ async function Inhoud({ params }: Pick<PageProps<"/[slug]">, "params">) {
   if (!restaurant) notFound();
   return (
     <>
-      <h1 className="text-3xl font-semibold">Reserveren bij {restaurant.naam}</h1>
-      <p className="mt-2 text-neutral-700">
-        Kies een tijdstip en laat weten of jullie het menu nemen. Zo weet de keuken op voorhand wat er aankomt.
-      </p>
-      <div className="mt-6">
-        <FormulierLader restaurant={restaurant} />
-      </div>
+      <FormulierLader restaurant={restaurant} metKop />
+      <p className="mt-10 text-center text-xs text-neutral-500">Online reserveren via {PRODUCT_NAAM}</p>
     </>
   );
 }

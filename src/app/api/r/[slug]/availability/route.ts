@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: RouteContext<"/api/r
   const { aantal, datum } = parsed.data;
 
   try {
-    const ctx = await laadAvailabilityContext(restaurant.id);
+    const ctx = await laadAvailabilityContext(restaurant);
     if (aantal > ctx.instellingen.max_groepsgrootte) {
       return NextResponse.json(
         { fout: "groep_te_groot", maxGroepsgrootte: ctx.instellingen.max_groepsgrootte },

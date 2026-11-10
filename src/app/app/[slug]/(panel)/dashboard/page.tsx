@@ -6,9 +6,9 @@ import { adminContext } from "@/lib/admin/auth";
 import { laadDagContext } from "@/lib/admin/data";
 import { getSlotsVoorDatum, voegDagenToe } from "@/lib/availability";
 import { formatDatum, formatTijdstip } from "@/lib/format";
-import { vandaagInBrussel } from "@/lib/time";
+import { vandaagIn } from "@/lib/time";
 
-export const metadata: Metadata = { title: "Dashboard — Bistro de Borre" };
+export const metadata: Metadata = { title: "Dashboard" };
 
 const TYPE_LABEL: Record<string, string> = {
   nieuwe_reservatie: "Nieuwe reservatie",
@@ -21,14 +21,14 @@ export default async function DashboardPage({ params }: PageProps<"/app/[slug]/d
   const { slug } = await params;
   const { db, restaurant } = await adminContext(slug);
   const basis = `/app/${restaurant.slug}`;
-  const vandaag = vandaagInBrussel();
+  const vandaag = vandaagIn(restaurant.tijdzone);
   const dagen = [vandaag, voegDagenToe(vandaag, 1)];
 
   const [kaarten, meldingen] = await Promise.all([
     Promise.all(
       dagen.map(async (datum) => {
         const [ctx, res] = await Promise.all([
-          laadDagContext(db, restaurant.id, datum),
+          laadDagContext(db, restaurant, datum),
           db.from("reservations").select("aantal_personen, menu").eq("restaurant_id", restaurant.id).eq("datum", datum).neq("status", "geannuleerd"),
         ]);
         const rijen = res.data ?? [];
@@ -109,7 +109,7 @@ export default async function DashboardPage({ params }: PageProps<"/app/[slug]/d
                     </>
                   )}
                 </span>
-                <span className="text-neutral-600">{formatTijdstip(m.created_at)}</span>
+                <span className="text-neutral-600">{formatTijdstip(m.created_at, restaurant.tijdzone)}</span>
               </li>
             );
           })}

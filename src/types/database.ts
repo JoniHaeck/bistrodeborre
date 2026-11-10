@@ -583,6 +583,7 @@ export type Database = {
           widget_primaire_kleur: string
         }[]
       }
+      is_geldige_tijdzone: { Args: { p_tijdzone: string }; Returns: boolean }
       is_lid: { Args: { p_restaurant_id: string }; Returns: boolean }
       is_platform_admin: { Args: never; Returns: boolean }
       log_and_notify: {

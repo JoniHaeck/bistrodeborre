@@ -37,7 +37,12 @@ export const LOG_LABEL: Record<string, string> = {
  * Context voor één datum waarin enkel sluitingen/blokkades meetellen: beheerders mogen ook
  * in het verleden of buiten de boekingshorizon werken. Daarom een "nu" in 1970 en een ruime horizon.
  */
-export async function laadDagContext(db: AdminDb, restaurantId: string, datum: string): Promise<AvailabilityContext> {
+export async function laadDagContext(
+  db: AdminDb,
+  restaurant: { id: string; tijdzone: string },
+  datum: string,
+): Promise<AvailabilityContext> {
+  const restaurantId = restaurant.id;
   const [instellingen, shiften, uitzonderingen, bezet] = await Promise.all([
     db
       .from("settings")
@@ -63,5 +68,6 @@ export async function laadDagContext(db: AdminDb, restaurantId: string, datum: s
     uitzonderingen: uitzonderingen.data,
     bezetting,
     nu: new Date(0),
+    tijdzone: restaurant.tijdzone,
   };
 }
