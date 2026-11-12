@@ -78,9 +78,10 @@ export async function POST(request: NextRequest, { params }: RouteContext<"/api/
           aantal: data.aantal_personen,
           menu: data.menu,
           voornaam: data.voornaam,
+          beheerToken: data.cancel_token,
         },
       },
-      { status: 201 },
+      { status: 201, headers: { "Cache-Control": "no-store" } },
     );
   } catch (e) {
     console.error("Reservatie aanmaken mislukt", e);

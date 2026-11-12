@@ -74,6 +74,15 @@ Een shift kan voor een specifieke dag worden gesloten via het dagoverzicht of vi
 **Shiften → Uitzonderingen**; bestaande reservaties blijven behouden. Verwijder de
 uitzondering onder Shiften om de shift opnieuw boekbaar te maken.
 
+De bevestiging bevat een persoonlijke beheerlink en een downloadbaar `.ics`-agendabestand.
+Via de beheerlink kan de gast tot 24 uur voor de reservatie de contactgegevens, menu,
+datum, tijd en groepsgrootte wijzigen of annuleren. Nieuwe slots worden opnieuw op
+beschikbaarheid en capaciteit gecontroleerd. Voor grotere groepen moet de gast het
+restaurant contacteren; een bestaande grotere groep kan op hetzelfde tijdstip behouden
+of verkleind worden. Oude annuleerlinks blijven werken en leiden naar dezelfde pagina.
+Een gewijzigde reservatie wordt ook opgeslagen als de bevestigingsmail mislukt; dit wordt
+uitdrukkelijk gemeld. De beheerlink geeft toegang tot persoonlijke gegevens en moet privé blijven.
+
 Onder **Shiften → Uitzonderingen** kan een optionele einddatum worden ingevuld
 (inclusief, maximaal 730 dagen). De uitzondering geldt dan voor alle geselecteerde
 dagen; bij een specifieke shift worden dagen zonder die shift overgeslagen. Bestaande
@@ -104,7 +113,7 @@ uitgevoerd worden (bv. via de Supabase SQL Editor).
   lopen server-side met de service-role key en geven altijd een `restaurant_id` mee.
 - Reservaties aanmaken/annuleren gebeurt uitsluitend via de
   `SECURITY DEFINER`-functies `create_reservation()` en
-  `cancel_reservation()`. Een advisory lock per restaurant + slot laat gelijktijdige
+  `beheer_reservatie()`. Een advisory lock per restaurant + slot laat gelijktijdige
   aanvragen na elkaar lopen, zodat de capaciteit nooit overschreden wordt.
 - Ingelogde gebruikers zien via RLS enkel de restaurants waarvan ze lid zijn
   (`memberships`, functie `is_lid()`). Superadmins (`platform_admins`) hebben toegang tot
@@ -121,7 +130,7 @@ uitgevoerd worden (bv. via de Supabase SQL Editor).
 |---|---|
 | `/{slug}` | publieke boekingspagina van een restaurant |
 | `/w/{slug}` | embedbare widget (mag in een iframe op elke site) |
-| `/annuleren/{token}` | annuleerlink uit de bevestigingsmail |
+| `/reservatie-beheren/{token}` | persoonlijke beheerpagina; oude `/annuleren/{token}`-links verwijzen hiernaar |
 | `/api/r/{slug}/availability`, `/api/r/{slug}/reservations` | publieke API van de boekingspagina/widget |
 | `/login` | inloggen voor beheerders |
 | `/app` | restaurantkiezer; `/app/{slug}/...` is het beheer van één restaurant |

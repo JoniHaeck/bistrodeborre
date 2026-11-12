@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { formatDatum, formatDatumKort } from "@/lib/format";
 
 type SlotInfo = { tijdslot: string; shift: string };
-type Bevestiging = { datum: string; tijdslot: string; aantal: number; menu: boolean; voornaam: string };
+type Bevestiging = { datum: string; tijdslot: string; aantal: number; menu: boolean; voornaam: string; beheerToken?: string };
 
 type Props = {
   slug: string;
@@ -157,14 +157,19 @@ export function ReservatieFormulier({ slug, initieleDagen, vandaag, initieelAant
 
   if (klaar) {
     return (
-      <div role="status" className="rounded-[5px] bg-[var(--primair-licht)] p-6">
-        <h2 className="text-2xl">Bedankt{klaar.voornaam ? `, ${klaar.voornaam}` : ""}!</h2>
-        <p className="mt-3">
-          Uw {groep ? "aanvraag" : "reservatie"} voor <strong>{klaar.aantal} {klaar.aantal === 1 ? "persoon" : "personen"}</strong> op{" "}
-          <strong>{formatDatum(klaar.datum)}</strong> om <strong>{klaar.tijdslot}</strong> is genoteerd.
-          {klaar.menu ? " Jullie nemen het menu." : " Jullie kiezen à la carte."}
-        </p>
-        <p className="mt-3 text-sm">{groep ? "Dit is nog geen reservatie. Het restaurant beoordeelt uw aanvraag; na bevestiging ontvangt u een e-mail." : "U ontvangt een bevestiging per e-mail, met een link om te annuleren."}</p>
+      <div role="status" className="rounded-[5px] bg-[var(--primair-licht)] p-6 text-center">
+        <div aria-hidden="true" className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--primair)] text-2xl text-white">✓</div>
+        <h2 className="text-2xl">{groep ? "Uw aanvraag is ontvangen" : "Uw reservatie is bevestigd"}</h2>
+        <p className="mt-3">Bedankt{klaar.voornaam ? `, ${klaar.voornaam}` : ""}!</p>
+        <div className="my-5 rounded bg-white p-4 text-left">
+          <p><strong>{formatDatum(klaar.datum)}</strong> om <strong>{klaar.tijdslot}</strong></p>
+          <p>{klaar.aantal} {klaar.aantal === 1 ? "gast" : "gasten"} · {klaar.menu ? "Menu" : "À la carte"}</p>
+        </div>
+        <p className="text-sm">{groep ? "Dit is nog geen reservatie. Het restaurant beoordeelt uw aanvraag; na bevestiging ontvangt u een e-mail." : "U ontvangt een bevestiging per e-mail. Wijzigen of annuleren kan tot 24 uur vooraf."}</p>
+        {!groep && klaar.beheerToken && <div className="mt-5 flex flex-wrap justify-center gap-3">
+          <a className="rounded bg-[var(--primair)] px-4 py-3 font-semibold text-white" href={`/api/gast/${encodeURIComponent(klaar.beheerToken)}/agenda`} target="_blank" rel="noreferrer">Toevoegen aan agenda (.ics)</a>
+          <a className="px-4 py-3 underline" href={`/reservatie-beheren/${encodeURIComponent(klaar.beheerToken)}`} target="_blank" rel="noreferrer">Reservatie beheren</a>
+        </div>}
       </div>
     );
   }

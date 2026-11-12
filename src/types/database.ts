@@ -508,6 +508,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      beheer_reservatie: {
+        Args: {
+          p_token: string; p_actie: string; p_datum: string; p_tijdslot: string;
+          p_aantal: number; p_voornaam: string; p_naam: string; p_email: string;
+          p_telefoon: string; p_opmerking: string | null; p_menu: boolean; p_shift_id: string | null;
+        }
+        Returns: Database["public"]["Tables"]["reservations"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "reservations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       bevestig_groepsaanvraag: {
         Args: { p_restaurant_id: string; p_id: string; p_overcapaciteit: boolean }
         Returns: Database["public"]["Tables"]["reservations"]["Row"]

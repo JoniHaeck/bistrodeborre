@@ -48,7 +48,7 @@ function reviewTekst(c: MailContext) {
 
 const uur = (t: string) => t.slice(0, 5);
 const annuleerLink = (r: MailReservatie, c: MailContext) =>
-  `${c.siteUrl}/annuleren/${r.cancel_token}`;
+  `${c.siteUrl}/reservatie-beheren/${r.cancel_token}`;
 
 function rij(label: string, waarde: string) {
   return `<tr><td style="padding:4px 16px 4px 0;color:#666">${label}</td><td style="padding:4px 0"><strong>${esc(waarde)}</strong></td></tr>`;
@@ -86,7 +86,8 @@ ${review ? `<p>Met vriendelijke groeten,<br>${esc(c.restaurantNaam)}<br><a href=
 
 function annuleerBlok(r: MailReservatie, c: MailContext) {
   const url = annuleerLink(r, c);
-  return `<p>Kunt u toch niet komen? <a href="${url}">Annuleer uw reservatie</a> zodat een ander uw plaats kan nemen.</p>`;
+  const kleur = c.kleur && KLEUR.test(c.kleur) ? c.kleur : "#555555";
+  return `<p>Wilt u iets aanpassen of annuleren?</p><p><a href="${esc(url)}" style="display:inline-block;background:${kleur};color:#fff;text-decoration:none;padding:12px 20px;border-radius:4px;font-weight:bold">Beheer uw reservatie</a></p><p>Dit kan tot 24 uur vooraf. Contacteer daarna het restaurant.</p>`;
 }
 
 export function bevestigingMail(r: MailReservatie, c: MailContext) {
@@ -94,9 +95,9 @@ export function bevestigingMail(r: MailReservatie, c: MailContext) {
     subject: `Bevestiging van uw reservatie op ${formatDatum(r.datum)} om ${uur(r.tijdslot)}`,
     html: layout(
       c,
-      `<p>Beste ${esc(r.voornaam)},</p><p>Bedankt voor uw reservatie. We verwachten u graag!</p>${details(r)}${annuleerBlok(r, c)}`,
+      `<p>Beste ${esc(r.voornaam)} ${esc(r.naam)},</p><p>Bedankt voor uw reservatie. We verwachten u graag!</p>${details(r)}<p><a href="${esc(`${c.siteUrl}/api/gast/${r.cancel_token}/agenda`)}">Download voor uw agenda (.ics)</a></p>${annuleerBlok(r, c)}<p>Tot binnenkort!<br>${esc(c.restaurantNaam)}</p>`,
     ),
-    text: `Beste ${r.voornaam},\n\nUw reservatie is bevestigd.\n${formatDatum(r.datum, true)} om ${uur(r.tijdslot)}\n${r.aantal_personen} personen, menu: ${r.menu ? "ja" : "nee"}\n\nAnnuleren: ${annuleerLink(r, c)}\n\n${c.restaurantNaam}${reviewTekst(c)}`,
+    text: `Beste ${r.voornaam} ${r.naam},\n\nUw reservatie is bevestigd.\n${formatDatum(r.datum, true)} om ${uur(r.tijdslot)}\n${r.aantal_personen} personen, menu: ${r.menu ? "ja" : "nee"}\n\nAgenda: ${c.siteUrl}/api/gast/${r.cancel_token}/agenda\nWijzigen of annuleren tot 24 uur vooraf: ${annuleerLink(r, c)}\n\n${c.restaurantNaam}${reviewTekst(c)}`,
   };
 }
 
@@ -107,7 +108,7 @@ export function herinneringMail(r: MailReservatie, c: MailContext) {
       c,
       `<p>Beste ${esc(r.voornaam)},</p><p>Een vriendelijke herinnering aan uw reservatie:</p>${details(r)}${annuleerBlok(r, c)}`,
     ),
-    text: `Beste ${r.voornaam},\n\nHerinnering aan uw reservatie.\n${formatDatum(r.datum, true)} om ${uur(r.tijdslot)}\n${r.aantal_personen} personen, menu: ${r.menu ? "ja" : "nee"}\n\nAnnuleren: ${annuleerLink(r, c)}\n\n${c.restaurantNaam}${reviewTekst(c)}`,
+    text: `Beste ${r.voornaam},\n\nHerinnering aan uw reservatie.\n${formatDatum(r.datum, true)} om ${uur(r.tijdslot)}\n${r.aantal_personen} personen, menu: ${r.menu ? "ja" : "nee"}\n\nUw reservatie beheren: ${annuleerLink(r, c)}\n\n${c.restaurantNaam}${reviewTekst(c)}`,
   };
 }
 

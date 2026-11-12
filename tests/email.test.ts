@@ -35,7 +35,7 @@ describe("mailtemplates", () => {
     expect(html).toContain("Bistro &lt;de&gt; Borre");
     expect(html).toContain("#123456");
     expect(html).toContain("Reservatie via Tafelvrij");
-    expect(html).toContain("https://app.tafelvrij.be/annuleren/abc");
+    expect(html).toContain("https://app.tafelvrij.be/reservatie-beheren/abc");
   });
 
   it("toont enkel een https-logo en negeert een ongeldige kleur", () => {

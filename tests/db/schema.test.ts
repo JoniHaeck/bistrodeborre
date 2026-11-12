@@ -7,7 +7,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 const A = "00000000-0000-4000-8000-000000000001"; // bistro-de-borre
 const B = "00000000-0000-4000-8000-000000000002"; // demo-brasserie
@@ -145,6 +145,102 @@ describe("create_reservation", () => {
     const [g] = await rijen<{ status: string }>("select * from cancel_reservation($1)", [r.cancel_token]);
     expect(g.status).toBe("geannuleerd");
     await expect(db.query("select * from cancel_reservation($1)", [r.cancel_token])).rejects.toThrow(/niet gevonden/);
+  });
+});
+
+describe("gastbeheer", () => {
+  beforeAll(() => als("service_role"));
+  beforeEach(async () => { await db.exec("begin"); });
+  afterEach(async () => { await db.exec("rollback"); });
+
+  async function reservatie(aantal = 4) {
+    return (await rijen<{ id: string; cancel_token: string }>(
+      `insert into reservations (restaurant_id, datum, tijdslot, aantal_personen, voornaam, naam, email, telefoon, menu, shift_template_id)
+       values ($1, $2, '18:00', $3, 'Jan', 'Peeters', 'jan@example.be', '+32123456789', false, $4) returning id, cancel_token`,
+      [A, dag, aantal, shiftA],
+    ))[0];
+  }
+  async function beheer(token: string, actie = "wijzig", aantal = 4, shift = shiftA, datum = dag, tijd = "18:00") {
+    await db.exec("savepoint beheer_test");
+    try {
+      const result = await db.query<{ status: string; aantal_personen: number; reminder_sent_at: string | null }>(
+        "select * from beheer_reservatie($1,$2,$3,$4,$5,'Jan','Peeters','jan@example.be','+32123456789',null,false,$6)",
+        [token, actie, datum, tijd, aantal, shift],
+      );
+      await db.exec("release savepoint beheer_test");
+      return result;
+    } catch (error) {
+      await db.exec("rollback to savepoint beheer_test");
+      throw error;
+    }
+  }
+
+  it("verleent enkel de service-role toegang", async () => {
+    const [rechten] = await rijen<{ anon: boolean; lid: boolean; service: boolean }>(
+      `select has_function_privilege('anon', 'public.beheer_reservatie(uuid,text,date,time,integer,text,text,text,text,text,boolean,uuid)', 'execute') anon,
+       has_function_privilege('authenticated', 'public.beheer_reservatie(uuid,text,date,time,integer,text,text,text,text,text,boolean,uuid)', 'execute') lid,
+       has_function_privilege('service_role', 'public.beheer_reservatie(uuid,text,date,time,integer,text,text,text,text,text,boolean,uuid)', 'execute') service`,
+    );
+    expect(rechten).toEqual({ anon: false, lid: false, service: true });
+  });
+
+  it("telt de eigen reservatie niet dubbel en weigert een volzet slot", async () => {
+    const r = await reservatie(4);
+    await reservatie(4);
+    expect((await beheer(r.cancel_token)).rows[0].aantal_personen).toBe(4);
+    await expect(beheer(r.cancel_token, "wijzig", 5)).rejects.toThrow(/volzet/);
+  });
+
+  it("weigert ongeldige tokens, een shift van een ander restaurant en te grote groepen", async () => {
+    const r = await reservatie();
+    await expect(beheer("99999999-9999-4999-8999-999999999999")).rejects.toThrow(/ongeldige_link/);
+    await expect(beheer(r.cancel_token, "wijzig", 9)).rejects.toThrow(/ongeldige_groep/);
+    await expect(beheer(r.cancel_token, "wijzig", 4, shiftB ?? "99999999-9999-4999-8999-999999999999", dag, "18:15")).rejects.toThrow(/niet_beschikbaar/);
+  });
+
+  it("respecteert gesloten shiften en kwartiersloten", async () => {
+    const r = await reservatie();
+    await expect(beheer(r.cancel_token, "wijzig", 4, shiftA, dag, "18:07")).rejects.toThrow(/niet_beschikbaar/);
+    await db.query("insert into date_exceptions (restaurant_id, datum, gesloten) values ($1, $2, true)", [A, dag]);
+    await expect(beheer(r.cancel_token, "wijzig", 4, shiftA, dag, "18:15")).rejects.toThrow(/niet_beschikbaar/);
+    await expect(beheer(r.cancel_token)).resolves.toBeTruthy();
+  });
+
+  it("laat een bestaande grote groep de gegevens aanpassen, maar niet vergroten of verplaatsen", async () => {
+    const r = await reservatie(10);
+    await expect(beheer(r.cancel_token, "wijzig", 10)).resolves.toBeTruthy();
+    await expect(beheer(r.cancel_token, "wijzig", 11)).rejects.toThrow(/ongeldige_groep/);
+    await expect(beheer(r.cancel_token, "wijzig", 10, shiftA, dag, "18:15")).rejects.toThrow(/ongeldige_groep/);
+  });
+  it("weigert wijzigen en annuleren binnen 24 uur", async () => {
+    const r = await reservatie();
+    await db.query(`update reservations set datum = ((now() + interval '23 hours') at time zone 'Europe/Brussels')::date,
+      tijdslot = ((now() + interval '23 hours') at time zone 'Europe/Brussels')::time where id = $1`, [r.id]);
+    await expect(beheer(r.cancel_token)).rejects.toThrow(/termijn_verstreken/);
+    await expect(beheer(r.cancel_token, "annuleer")).rejects.toThrow(/termijn_verstreken/);
+  });
+
+  it("staat annulering toe na de 24-uursgrens en weigert op de grens", async () => {
+    const r = await reservatie();
+    await db.query(`update reservations set datum = ((now() + interval '24 hours') at time zone 'Europe/Brussels')::date,
+      tijdslot = ((now() + interval '24 hours') at time zone 'Europe/Brussels')::time where id = $1`, [r.id]);
+    await expect(beheer(r.cancel_token, "annuleer")).rejects.toThrow(/termijn_verstreken/);
+    await db.query(`update reservations set datum = ((now() + interval '24 hours 1 second') at time zone 'Europe/Brussels')::date,
+      tijdslot = ((now() + interval '24 hours 1 second') at time zone 'Europe/Brussels')::time where id = $1`, [r.id]);
+    expect((await beheer(r.cancel_token, "annuleer")).rows[0].status).toBe("geannuleerd");
+  });
+
+  it("annuleert eenmaal en weigert nadien verdere wijzigingen", async () => {
+    const r = await reservatie();
+    expect((await beheer(r.cancel_token, "annuleer")).rows[0].status).toBe("geannuleerd");
+    await expect(beheer(r.cancel_token, "annuleer")).rejects.toThrow(/niet_bevestigd/);
+    await expect(beheer(r.cancel_token)).rejects.toThrow(/niet_bevestigd/);
+  });
+
+  it("reset de herinnering bij een tijdswijziging", async () => {
+    const r = await reservatie();
+    await db.query("update reservations set reminder_sent_at = now() where id = $1", [r.id]);
+    expect((await beheer(r.cancel_token, "wijzig", 4, shiftA, dag, "18:15")).rows[0].reminder_sent_at).toBeNull();
   });
 });
 
