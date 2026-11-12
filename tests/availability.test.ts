@@ -106,6 +106,13 @@ describe("getSlotsVoorDatum", () => {
     expect(shiftOnly.filter((s) => s.shiftId === "a").every((s) => !s.gesloten)).toBe(true);
   });
 
+  it("sluit elk van meerdere ingegeven vakantiedagen en laat andere dagen beschikbaar", () => {
+    const dagen = ["2026-10-23", "2026-10-30"];
+    const c = ctx({ uitzonderingen: dagen.map((datum) => uitz({ datum, gesloten: true })) });
+    for (const datum of dagen) expect(getBeschikbareSlots(datum, 2, c)).toEqual([]);
+    expect(getBeschikbareSlots("2026-11-06", 2, c).length).toBeGreaterThan(0);
+  });
+
   it("blokkeert een hele shift of losse slots", () => {
     const c = ctx({
       uitzonderingen: [

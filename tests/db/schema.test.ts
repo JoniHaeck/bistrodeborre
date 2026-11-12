@@ -334,6 +334,26 @@ describe("groepsaanvragen", () => {
   });
 });
 
+describe("uitzonderingsperiodes", () => {
+  const periode = "44444444-4444-4444-8444-444444444444";
+  it("slaat afzonderlijke dagen per restaurant op en houdt ze gescheiden via RLS", async () => {
+    await als("service_role");
+    await db.query(
+      `insert into date_exceptions (restaurant_id, datum, gesloten, periode_id)
+       values ($1, $2::date, true, $3), ($1, $2::date + 1, true, $3),
+              ($4, $2::date, true, $3)`,
+      [A, dag, periode, B],
+    );
+    await als("authenticated", LID_A);
+    const rijenA = await rijen<{ datum: string }>("select datum::text as datum from date_exceptions where periode_id = $1 order by datum", [periode]);
+    expect(rijenA).toHaveLength(2);
+    const verwijder = await db.query("delete from date_exceptions where restaurant_id = $1 and periode_id = $2", [A, periode]);
+    expect(verwijder.affectedRows).toBe(2);
+    await als("service_role");
+    expect(await rijen("select id from date_exceptions where restaurant_id = $1 and periode_id = $2", [B, periode])).toHaveLength(1);
+  });
+});
+
 describe("verwijderen", () => {
   it("een restaurant verwijderen ruimt al zijn data op", async () => {
     await als("service_role");

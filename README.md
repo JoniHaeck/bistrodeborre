@@ -74,6 +74,12 @@ Een shift kan voor een specifieke dag worden gesloten via het dagoverzicht of vi
 **Shiften → Uitzonderingen**; bestaande reservaties blijven behouden. Verwijder de
 uitzondering onder Shiften om de shift opnieuw boekbaar te maken.
 
+Onder **Shiften → Uitzonderingen** kan een optionele einddatum worden ingevuld
+(inclusief, maximaal 730 dagen). De uitzondering geldt dan voor alle geselecteerde
+dagen; bij een specifieke shift worden dagen zonder die shift overgeslagen. Bestaande
+reservaties blijven behouden en bij een impact verschijnt eerst een waarschuwing.
+Een periode kan als geheel of per dag worden verwijderd.
+
 Een superadmin kan onder **Platform** een bestaand account koppelen of een nieuwe
 beheerder per e-mail uitnodigen. De gastbeheerder kiest zelf een wachtwoord via de
 eenmalige uitnodigingslink. Supabase Auth verstuurt de uitnodiging: stel daar SMTP in

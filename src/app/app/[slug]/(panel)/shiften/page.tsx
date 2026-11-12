@@ -6,7 +6,9 @@ import { WEEKDAGEN } from "@/lib/admin/data";
 import { genereerTijdsloten } from "@/lib/availability";
 import { formatDatum } from "@/lib/format";
 import { vandaagIn } from "@/lib/time";
-import { bewaarShift, maakUitzondering, verwijderShift, verwijderUitzondering } from "./actions";
+import type { AdminDb } from "@/lib/admin/auth";
+import type { Tables } from "@/types/database";
+import { bewaarShift, maakUitzondering, verwijderShift, verwijderUitzondering, verwijderUitzonderingsperiode } from "./actions";
 
 export const metadata: Metadata = { title: "Shiften" };
 
@@ -19,6 +21,19 @@ type ShiftRij = {
   actief: boolean;
   capaciteit_per_slot: number | null;
 };
+
+async function laadUitzonderingen(db: AdminDb, restaurantId: string, vandaag: string) {
+  const uitzonderingen: Tables<"date_exceptions">[] = [];
+  const paginagrootte = 1000;
+  for (let offset = 0; ; offset += paginagrootte) {
+    const { data, error } = await db.from("date_exceptions").select("*")
+      .eq("restaurant_id", restaurantId).gte("datum", vandaag)
+      .order("datum").order("id").range(offset, offset + paginagrootte - 1);
+    if (error) return { data: null, error };
+    uitzonderingen.push(...data);
+    if (data.length < paginagrootte) return { data: uitzonderingen, error: null };
+  }
+}
 
 function ShiftVelden({ s }: { s: ShiftRij }) {
   return (
@@ -61,15 +76,22 @@ export default async function ShiftenPage({ params }: PageProps<"/app/[slug]/shi
   const { slug } = await params;
   const { db, restaurant } = await adminContext(slug);
   const vandaag = vandaagIn(restaurant.tijdzone);
-  const [{ data: shiften }, { data: uitzonderingen }, { data: inst }] = await Promise.all([
+  const [{ data: shiften }, { data: uitzonderingen, error: uitzonderingenFout }, { data: inst }] = await Promise.all([
     db.from("shift_templates").select("*").eq("restaurant_id", restaurant.id).order("start_tijd"),
-    db.from("date_exceptions").select("*").eq("restaurant_id", restaurant.id).gte("datum", vandaag).order("datum"),
+    laadUitzonderingen(db, restaurant.id, vandaag),
     db.from("settings").select("standaard_capaciteit, slot_minuten").eq("restaurant_id", restaurant.id).single(),
   ]);
   const standaard = inst?.standaard_capaciteit ?? 8;
   const stap = inst?.slot_minuten ?? 15;
   const namen = [...new Set((shiften ?? []).map((s) => s.naam))];
   const shiftNaam = new Map((shiften ?? []).map((s) => [s.id, s.naam]));
+  const groepen = new Map<string, NonNullable<typeof uitzonderingen>>();
+  for (const u of uitzonderingen ?? []) {
+    const sleutel = u.periode_id ?? u.id;
+    const groep = groepen.get(sleutel) ?? [];
+    groep.push(u);
+    groepen.set(sleutel, groep);
+  }
 
   return (
     <div className="space-y-8">
@@ -135,14 +157,20 @@ export default async function ShiftenPage({ params }: PageProps<"/app/[slug]/shi
           Uitzonderingen
         </h2>
         <p className="mt-1 text-sm text-neutral-700">
-          Sluitingsdagen/vakantie, tijdelijk blokkeren van een shift of kwartieren, of een afwijkende capaciteit op een specifieke datum.
+          Sluitingsdagen/vakantie, tijdelijk blokkeren van een shift of kwartieren, of een afwijkende capaciteit op één dag of voor een periode.
         </p>
+        {uitzonderingenFout && <p role="alert" className="mt-2 text-sm text-red-800">De bestaande uitzonderingen konden niet geladen worden.</p>}
 
         <ActieFormulier action={maakUitzondering.bind(null, slug)} className="mt-4">
           <div className="grid gap-3 sm:grid-cols-3">
             <label className="lbl">
-              Datum
+              Begindatum
               <input type="date" name="datum" min={vandaag} required className="veld" />
+            </label>
+            <label className="lbl">
+              Einddatum (optioneel)
+              <input type="date" name="einddatum" min={vandaag} className="veld" />
+              <span className="text-xs font-normal text-neutral-600">Inclusief deze dag; maximaal 730 dagen. Laat leeg voor één dag.</span>
             </label>
             <label className="lbl">
               Geldt voor
@@ -152,6 +180,7 @@ export default async function ShiftenPage({ params }: PageProps<"/app/[slug]/shi
                   <option key={n}>{n}</option>
                 ))}
               </select>
+              <span className="text-xs font-normal text-neutral-600">Bij een periode worden dagen zonder deze shift overgeslagen.</span>
             </label>
             <label className="lbl">
               Soort
@@ -182,25 +211,52 @@ export default async function ShiftenPage({ params }: PageProps<"/app/[slug]/shi
 
         <ul className="mt-5 divide-y divide-neutral-200 text-sm">
           {(uitzonderingen ?? []).length === 0 && <li className="py-2 text-neutral-600">Geen komende uitzonderingen.</li>}
-          {(uitzonderingen ?? []).map((u) => {
+          {[...groepen.values()].map((groep) => {
+            const u = groep[0];
             const wat = [
               u.gesloten && "gesloten",
               u.geblokkeerd && "geblokkeerd",
               (u.geblokkeerde_tijdsloten ?? []).length > 0 && `kwartieren geblokkeerd: ${(u.geblokkeerde_tijdsloten ?? []).map((t) => t.slice(0, 5)).join(", ")}`,
               u.afwijkende_capaciteit !== null && `capaciteit ${u.afwijkende_capaciteit}`,
             ].filter(Boolean);
+            const titel = u.shift_template_id ? shiftNaam.get(u.shift_template_id) ?? "verwijderde shift" : "hele dag";
+            if (!u.periode_id) {
+              return (
+                <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <span><strong>{formatDatum(u.datum, true)}</strong> · {titel} · {wat.join(", ")}
+                    {u.opmerking && <span className="text-neutral-600"> ({u.opmerking})</span>}
+                  </span>
+                  <ActieFormulier action={verwijderUitzondering.bind(null, slug, u.id)}>
+                    <button type="submit" className="btn-sec">Verwijderen</button>
+                  </ActieFormulier>
+                </li>
+              );
+            }
             return (
-              <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <span>
-                  <strong>{formatDatum(u.datum, true)}</strong> · {u.shift_template_id ? shiftNaam.get(u.shift_template_id) : "hele dag"} ·{" "}
-                  {wat.join(", ")}
-                  {u.opmerking && <span className="text-neutral-600"> ({u.opmerking})</span>}
-                </span>
-                <ActieFormulier action={verwijderUitzondering.bind(null, slug, u.id)}>
-                  <button type="submit" className="btn-sec">
-                    Verwijderen
-                  </button>
-                </ActieFormulier>
+              <li key={u.periode_id} className="space-y-2 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span>
+                    <strong>{formatDatum(u.datum, true)}{groep.length > 1 ? ` – ${formatDatum(groep[groep.length - 1].datum, true)}` : ""}</strong>
+                    {" "}· {titel} · {wat.join(", ")} · {groep.length} komende dag(en)
+                    {u.opmerking && <span className="text-neutral-600"> ({u.opmerking})</span>}
+                  </span>
+                  <ActieFormulier action={verwijderUitzonderingsperiode.bind(null, slug, u.periode_id)} bevestigLabel="Hele periode verwijderen">
+                    <button type="submit" className="btn-sec">Periode verwijderen</button>
+                  </ActieFormulier>
+                </div>
+                <details>
+                  <summary className="cursor-pointer">Dagen bekijken of afzonderlijk verwijderen</summary>
+                  <ul className="mt-2 space-y-2">
+                    {groep.map((dag) => (
+                      <li key={dag.id} className="flex flex-wrap items-center justify-between gap-2">
+                        <span>{formatDatum(dag.datum, true)}</span>
+                        <ActieFormulier action={verwijderUitzondering.bind(null, slug, dag.id)}>
+                          <button type="submit" className="btn-sec">Deze dag verwijderen</button>
+                        </ActieFormulier>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               </li>
             );
           })}

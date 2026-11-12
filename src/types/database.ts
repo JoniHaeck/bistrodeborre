@@ -70,6 +70,7 @@ export type Database = {
           gesloten: boolean
           id: string
           opmerking: string | null
+          periode_id: string | null
           restaurant_id: string
           shift_template_id: string | null
           updated_at: string
@@ -83,6 +84,7 @@ export type Database = {
           gesloten?: boolean
           id?: string
           opmerking?: string | null
+          periode_id?: string | null
           restaurant_id: string
           shift_template_id?: string | null
           updated_at?: string
@@ -96,6 +98,7 @@ export type Database = {
           gesloten?: boolean
           id?: string
           opmerking?: string | null
+          periode_id?: string | null
           restaurant_id?: string
           shift_template_id?: string | null
           updated_at?: string

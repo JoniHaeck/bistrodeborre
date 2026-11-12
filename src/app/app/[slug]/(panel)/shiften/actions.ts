@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ActieState } from "@/components/admin/ActieFormulier";
 import { adminContext } from "@/lib/admin/auth";
-import { weekdagVan } from "@/lib/availability";
+import { voegDagenToe, weekdagVan } from "@/lib/availability";
 import { vandaagIn } from "@/lib/time";
 
 const vinkje = z.preprocess((v) => v === "on" || v === "ja", z.boolean());
@@ -93,7 +93,8 @@ export async function verwijderShift(slug: string, id: string): Promise<ActieSta
 }
 
 const uitzonderingSchema = z.object({
-  datum: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Kies een datum."),
+  datum: z.iso.date("Kies een geldige begindatum."),
+  einddatum: z.union([z.iso.date("Kies een geldige einddatum."), z.literal("")]).optional(),
   shift: z.string().max(50).optional(),
   shift_id: z.string().uuid().optional(),
   soort: z.enum(["gesloten", "geblokkeerd", "slots", "capaciteit"]),
@@ -108,23 +109,35 @@ export async function maakUitzondering(slug: string, formData: FormData): Promis
   const parsed = uitzonderingSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fout: parsed.error.issues[0]?.message ?? "Controleer de gegevens." };
   const u = parsed.data;
+  const einddatum = u.einddatum || u.datum;
+  if (einddatum < u.datum) return { fout: "De einddatum mag niet vóór de begindatum liggen." };
+  if (einddatum > voegDagenToe(u.datum, 729)) return { fout: "Een periode mag maximaal 730 dagen omvatten." };
+  if (u.shift_id && einddatum !== u.datum) return { fout: "Een specifieke shift kan alleen voor één dag worden gesloten." };
+  const datums: string[] = [];
+  for (let datum = u.datum; datum <= einddatum; datum = voegDagenToe(datum, 1)) datums.push(datum);
 
-  let shiftId: string | null = null;
+  const shiftsPerDag = new Map<number, string>();
   if (u.shift || u.shift_id) {
     let query = db
       .from("shift_templates")
-      .select("id")
-      .eq("restaurant_id", restaurant.id)
-      .eq("weekdag", weekdagVan(u.datum));
+      .select("id, weekdag")
+      .eq("restaurant_id", restaurant.id);
     query = u.shift_id ? query.eq("id", u.shift_id) : query.eq("naam", u.shift!);
-    const { data, error } = await query.maybeSingle();
+    const { data, error } = await query;
     if (error) {
       console.error("Shift zoeken mislukt", error);
       return { fout: "Shift opzoeken mislukt. Controleer of de shiftnaam uniek is." };
     }
-    if (!data) return { fout: "Er is geen overeenkomstige shift op die weekdag." };
-    shiftId = data.id;
+    for (const shift of data) {
+      if (shiftsPerDag.has(shift.weekdag)) return { fout: "De shiftnaam komt meermaals voor op een weekdag. Geef de shiften eerst een unieke naam." };
+      shiftsPerDag.set(shift.weekdag, shift.id);
+    }
   }
+  const dagen = datums.flatMap((datum) => {
+    const shiftId = u.shift || u.shift_id ? shiftsPerDag.get(weekdagVan(datum)) : null;
+    return shiftId === undefined ? [] : [{ datum, shiftId }];
+  });
+  if (!dagen.length) return { fout: "Er is geen overeenkomstige shift in deze periode." };
 
   const sloten =
     u.soort === "slots"
@@ -139,50 +152,81 @@ export async function maakUitzondering(slug: string, formData: FormData): Promis
   if (u.soort === "capaciteit" && u.capaciteit === null) return { fout: "Geef een capaciteit op." };
 
   if (u.bevestig !== "ja") {
-    let q = db
-      .from("reservations")
-      .select("tijdslot, aantal_personen")
-      .eq("restaurant_id", restaurant.id)
-      .eq("datum", u.datum)
-      .in("status", nietGeannuleerd.split(",") as never);
-    if (shiftId) q = q.eq("shift_template_id", shiftId);
-    const { data, error } = await q;
-    if (error) {
-      console.error("Bestaande reservaties controleren mislukt", error);
-      return { fout: "Bestaande reservaties konden niet gecontroleerd worden. Probeer opnieuw." };
+    const reservaties: { datum: string; tijdslot: string; aantal_personen: number; shift_template_id: string | null }[] = [];
+    const paginagrootte = 1000;
+    for (let offset = 0; ; offset += paginagrootte) {
+      let q = db
+        .from("reservations")
+        .select("datum, tijdslot, aantal_personen, shift_template_id")
+        .eq("restaurant_id", restaurant.id)
+        .gte("datum", u.datum)
+        .lte("datum", einddatum)
+        .in("status", nietGeannuleerd.split(",") as never);
+      if (u.shift || u.shift_id) q = q.in("shift_template_id", [...shiftsPerDag.values()]);
+      const { data, error } = await q.order("id").range(offset, offset + paginagrootte - 1);
+      if (error) {
+        console.error("Bestaande reservaties controleren mislukt", error);
+        return { fout: "Bestaande reservaties konden niet gecontroleerd worden. Probeer opnieuw." };
+      }
+      reservaties.push(...data);
+      if (data.length < paginagrootte) break;
     }
-    const rijen = data ?? [];
+    const gekozenDagen = new Map(dagen.map((dag) => [dag.datum, dag.shiftId]));
+    const rijen = reservaties.filter((r) =>
+      gekozenDagen.has(r.datum) && (gekozenDagen.get(r.datum) === null || gekozenDagen.get(r.datum) === r.shift_template_id),
+    );
     let geraakt = 0;
     if (u.soort === "gesloten" || u.soort === "geblokkeerd") geraakt = rijen.length;
     else if (u.soort === "slots") geraakt = rijen.filter((r) => sloten.includes(r.tijdslot.slice(0, 5))).length;
     else {
       const perSlot = new Map<string, number>();
-      for (const r of rijen) perSlot.set(r.tijdslot, (perSlot.get(r.tijdslot) ?? 0) + r.aantal_personen);
+      for (const r of rijen) {
+        const sleutel = `${r.datum}|${r.tijdslot}`;
+        perSlot.set(sleutel, (perSlot.get(sleutel) ?? 0) + r.aantal_personen);
+      }
       geraakt = [...perSlot.values()].filter((n) => n > (u.capaciteit ?? 0)).length;
     }
     if (geraakt > 0) {
       return {
-        waarschuwing: `Let op: ${geraakt} bestaande reservatie(s)/kwartier(en) op ${u.datum} worden geraakt. Ze blijven behouden en worden niet automatisch geannuleerd of verwittigd.`,
+        waarschuwing: `Let op: ${geraakt} bestaande reservatie(s)/kwartier(en) in de gekozen periode worden geraakt. Ze blijven behouden en worden niet automatisch geannuleerd of verwittigd.`,
       };
     }
   }
 
-  const { error } = await db.from("date_exceptions").insert({
+  const periodeId = einddatum !== u.datum ? crypto.randomUUID() : null;
+  const { error } = await db.from("date_exceptions").insert(dagen.map(({ datum, shiftId }) => ({
     restaurant_id: restaurant.id,
-    datum: u.datum,
+    datum,
     shift_template_id: shiftId,
+    periode_id: periodeId,
     gesloten: u.soort === "gesloten",
     geblokkeerd: u.soort === "geblokkeerd",
     geblokkeerde_tijdsloten: sloten,
     afwijkende_capaciteit: u.soort === "capaciteit" ? u.capaciteit : null,
     opmerking: u.opmerking || null,
-  });
+  })));
   if (error) {
     console.error("Uitzondering opslaan mislukt", error);
     return { fout: "Opslaan mislukt." };
   }
   revalidatePath(`/app/${slug}`, "layout");
-  return { ok: "Uitzondering toegevoegd." };
+  const overgeslagen = datums.length - dagen.length;
+  return { ok: `Uitzondering toegevoegd voor ${dagen.length} dag(en).${overgeslagen ? ` ${overgeslagen} dag(en) zonder de gekozen shift overgeslagen.` : ""}` };
+}
+
+export async function verwijderUitzonderingsperiode(slug: string, periodeId: string, formData: FormData): Promise<ActieState> {
+  const { db, restaurant } = await adminContext(slug);
+  if (!z.string().uuid().safeParse(periodeId).success) return { fout: "Ongeldige periode." };
+  if (formData.get("bevestig") !== "ja") {
+    return { waarschuwing: "Alle uitzonderingen in deze periode worden verwijderd. De betrokken dagen of shiften kunnen daardoor opnieuw boekbaar worden." };
+  }
+  const { error } = await db.from("date_exceptions").delete().eq("restaurant_id", restaurant.id).eq("periode_id", periodeId);
+  if (error) {
+    console.error("Uitzonderingsperiode verwijderen mislukt", error);
+    return { fout: "De periode kon niet verwijderd worden." };
+  }
+  revalidatePath(`/app/${slug}`, "layout");
+  return { ok: "Uitzonderingsperiode verwijderd." };
 }
 
 export async function verwijderUitzondering(slug: string, id: string): Promise<ActieState> {
