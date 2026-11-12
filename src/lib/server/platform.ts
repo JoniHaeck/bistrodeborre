@@ -59,8 +59,11 @@ export async function nodigBeheerderUit(
   redirectTo: string,
 ): Promise<{ ok: boolean; fout?: string }> {
   const db = createServiceRoleClient();
-  const { data: restaurant, error: restaurantFout } = await db.from("restaurants").select("id").eq("id", restaurantId).maybeSingle();
-  if (restaurantFout || !restaurant) return { ok: false, fout: "Restaurant niet gevonden of kon niet geladen worden." };
+  const { data: restaurant, error: restaurantFout } = await db.from("restaurants").select("id, naam").eq("id", restaurantId).maybeSingle();
+  if (restaurantFout || !restaurant) {
+    if (restaurantFout) console.error("Restaurant voor uitnodiging ophalen mislukt", restaurantFout);
+    return { ok: false, fout: "Restaurant niet gevonden of kon niet geladen worden." };
+  }
   const { data: userId, error: zoekFout } = await db.rpc("user_id_voor_email", { p_email: email });
   if (zoekFout) {
     console.error("Account opzoeken mislukt", zoekFout);
@@ -75,8 +78,19 @@ export async function nodigBeheerderUit(
     if (bestaand.user.email_confirmed_at || !bestaand.user.invited_at) {
       return { ok: false, fout: "Dit account bestaat al. Gebruik 'Bestaand account koppelen'." };
     }
+    // Supabase gebruikt bij een heruitnodiging de bestaande metadata, niet de meegegeven data.
+    const { error: metadataFout } = await db.auth.admin.updateUserById(userId, {
+      user_metadata: { ...bestaand.user.user_metadata, uitnodiging_restaurant: restaurant.naam },
+    });
+    if (metadataFout) {
+      console.error("Uitnodigingsgegevens bijwerken mislukt", metadataFout);
+      return { ok: false, fout: "Uitnodigingsgegevens bijwerken mislukt. Probeer opnieuw." };
+    }
   }
-  const { data, error } = await db.auth.admin.inviteUserByEmail(email, { redirectTo });
+  const { data, error } = await db.auth.admin.inviteUserByEmail(email, {
+    redirectTo,
+    data: { uitnodiging_restaurant: restaurant.naam },
+  });
   if (error || !data.user) {
     console.error("Beheerder uitnodigen mislukt", error);
     return { ok: false, fout: "Uitnodigen mislukt. Controleer de e-mailinstellingen en probeer opnieuw." };

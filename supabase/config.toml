@@ -22,5 +22,9 @@ additional_redirect_urls = ["https://127.0.0.1:3000"]
 jwt_expiry = 3600
 enable_signup = false
 
+[auth.email.template.invite]
+subject = "U bent uitgenodigd voor Tafelvrij"
+content_path = "./supabase/templates/uitnodiging.html"
+
 [realtime]
 enabled = true

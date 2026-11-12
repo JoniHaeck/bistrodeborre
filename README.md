@@ -98,6 +98,14 @@ verzonden is maar de koppeling mislukt, kan de superadmin het bestaande account 
 koppelen. Een uitnodiging aan een nog onbevestigd uitnodigingsaccount kan opnieuw
 worden verstuurd.
 
+De Nederlandstalige uitnodigingsmail staat in `supabase/templates/uitnodiging.html` en
+gebruikt de restaurantnaam uit de uitnodigingsmetadata. Bij een heruitnodiging wordt die
+naam bijgewerkt; voor oudere uitnodigingen zonder naam toont de template algemene tekst.
+Het lokale sjabloon wordt niet automatisch op het gehoste Supabase-project toegepast:
+stel het uitnodigingssjabloon en het onderwerp ook in via Supabase Auth of de Management
+API. Gebruik nooit `supabase config push` zonder eerst alle productie-instellingen te
+controleren: het lokale bestand kan ook andere Auth-instellingen overschrijven.
+
 Types opnieuw genereren na een schemawijziging:
 
 ```bash
