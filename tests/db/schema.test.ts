@@ -289,6 +289,24 @@ describe("RLS: lid van restaurant A", () => {
   });
 });
 
+describe("RLS: restauranttoegang blokkeren", () => {
+  it("blokkeert alleen het gekozen restaurant, ook voor databasefuncties, en kan hersteld worden", async () => {
+    await als("service_role");
+    await db.query("insert into memberships (user_id, restaurant_id, rol) values ($1, $2, 'beheerder')", [LID_A, B]);
+    await db.query("update memberships set geblokkeerd = true where user_id = $1 and restaurant_id = $2", [LID_A, A]);
+    await als("authenticated", LID_A);
+    expect(await rijen<{ id: string }>("select id from restaurants order by id")).toEqual([{ id: B }]);
+    expect(await rijen("select id from reservations where restaurant_id = $1", [A])).toEqual([]);
+    await expect(db.query("select * from get_bezetting($1, $2, $2)", [A, dag])).rejects.toThrow(/geen toegang/);
+    await expect(db.query("select * from get_bezetting($1, $2, $2)", [B, dag])).resolves.toBeTruthy();
+    await als("service_role");
+    await db.query("update memberships set geblokkeerd = false where user_id = $1 and restaurant_id = $2", [LID_A, A]);
+    await db.query("delete from memberships where user_id = $1 and restaurant_id = $2", [LID_A, B]);
+    await als("authenticated", LID_A);
+    expect(await rijen<{ id: string }>("select id from restaurants")).toEqual([{ id: A }]);
+  });
+});
+
 describe("RLS: superadmin", () => {
   beforeAll(async () => {
     await als("service_role");

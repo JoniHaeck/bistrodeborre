@@ -25,7 +25,7 @@ async function Lijst() {
   const db = await ingelogdeDb();
   const [superadmin, { data: lidmaatschappen }] = await Promise.all([
     isSuperadmin(db),
-    db.from("memberships").select("restaurants(slug, naam)").order("created_at"),
+    db.from("memberships").select("restaurants(slug, naam)").eq("geblokkeerd", false).order("created_at"),
   ]);
   const restaurants = (lidmaatschappen ?? []).flatMap((m) => (m.restaurants ? [m.restaurants] : []));
 

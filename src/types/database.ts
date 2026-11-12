@@ -123,18 +123,21 @@ export type Database = {
       memberships: {
         Row: {
           created_at: string
+          geblokkeerd: boolean
           restaurant_id: string
           rol: Database["public"]["Enums"]["lid_rol"]
           user_id: string
         }
         Insert: {
           created_at?: string
+          geblokkeerd?: boolean
           restaurant_id: string
           rol?: Database["public"]["Enums"]["lid_rol"]
           user_id: string
         }
         Update: {
           created_at?: string
+          geblokkeerd?: boolean
           restaurant_id?: string
           rol?: Database["public"]["Enums"]["lid_rol"]
           user_id?: string

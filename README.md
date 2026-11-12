@@ -98,6 +98,13 @@ verzonden is maar de koppeling mislukt, kan de superadmin het bestaande account 
 koppelen. Een uitnodiging aan een nog onbevestigd uitnodigingsaccount kan opnieuw
 worden verstuurd.
 
+Onder **Platform → Beheerders** kunnen superadmins accounts en restaurantkoppelingen
+bekijken. Een blokkering geldt onmiddellijk voor één restaurant en kan worden hersteld.
+Een account verwijderen is definitief en verwijdert alle restaurantkoppelingen; bestaande
+reservaties blijven behouden. Platformbeheerders kunnen via dit scherm niet worden
+geblokkeerd of verwijderd. Een bestaande koppeling opnieuw toevoegen heft een blokkering
+niet automatisch op: gebruik daarvoor **Toegang herstellen**.
+
 De Nederlandstalige uitnodigingsmail staat in `supabase/templates/uitnodiging.html` en
 gebruikt de restaurantnaam uit de uitnodigingsmetadata. Bij een heruitnodiging wordt die
 naam bijgewerkt; voor oudere uitnodigingen zonder naam toont de template algemene tekst.

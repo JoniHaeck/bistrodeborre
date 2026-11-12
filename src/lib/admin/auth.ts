@@ -26,7 +26,7 @@ export async function isSuperadmin(db: AdminDb): Promise<boolean> {
 export async function heeftBeheertoegang(db: AdminDb): Promise<boolean> {
   const [superadmin, { count }] = await Promise.all([
     isSuperadmin(db),
-    db.from("memberships").select("restaurant_id", { count: "exact", head: true }),
+    db.from("memberships").select("restaurant_id", { count: "exact", head: true }).eq("geblokkeerd", false),
   ]);
   return superadmin || (count ?? 0) > 0;
 }

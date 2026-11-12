@@ -51,6 +51,7 @@ async function Inhoud() {
     <>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">{PRODUCT_NAAM}: alle restaurants</h1>
+        <Link href="/platform/beheerders" className="btn-sec">Beheerders beheren</Link>
         <form action={logout}>
           <button type="submit" className="btn-sec">
             Uitloggen

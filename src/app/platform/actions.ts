@@ -40,6 +40,7 @@ export async function nieuwRestaurant(formData: FormData): Promise<ActieState> {
     return { fout: "Aanmaken mislukt." };
   }
   revalidatePath("/platform");
+  revalidatePath("/platform/beheerders");
 
   if (!eigenaar) return { ok: `Restaurant "${naam}" aangemaakt (/${slug}).` };
   const k = await koppelBeheerder(data.id, eigenaar);
@@ -67,6 +68,7 @@ export async function voegBeheerderToe(restaurantId: string, formData: FormData)
     const resultaat = await nodigBeheerderUit(restaurantId, parsed.data.email, parsed.data.rol, `${url}/uitnodiging`);
     if (!resultaat.ok) return { fout: resultaat.fout ?? "Uitnodigen mislukt." };
     revalidatePath("/platform");
+    revalidatePath("/platform/beheerders");
     return { ok: `Uitnodiging verstuurd naar ${parsed.data.email}. De beheerder stelt zelf een wachtwoord in.` };
   }
   const k = await koppelBeheerder(restaurantId, parsed.data.email, parsed.data.rol);
@@ -74,6 +76,7 @@ export async function voegBeheerderToe(restaurantId: string, formData: FormData)
     return { fout: k.reden === "geen_account" ? `Er bestaat nog geen account voor ${parsed.data.email}. Maak het eerst aan in Supabase (Authentication → Users).` : "Koppelen mislukt." };
   }
   revalidatePath("/platform");
+  revalidatePath("/platform/beheerders");
   return { ok: `${parsed.data.email} is nu ${parsed.data.rol}.` };
 }
 
