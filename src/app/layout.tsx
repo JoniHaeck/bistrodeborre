@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./beheer.css";
 import { PRODUCT_NAAM } from "@/lib/product";
 
 export const metadata: Metadata = {

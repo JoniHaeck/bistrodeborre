@@ -51,48 +51,53 @@ export default async function DashboardPage({ params }: PageProps<"/app/[slug]/d
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
+      <div className="beheer-dashboard-head flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="beheer-eyebrow"><span aria-hidden="true">✳</span> Jouw werkruimte</p>
+          <h1>Jouw dagoverzicht</h1>
+          <p className="beheer-intro">Een blik op de komende service van {restaurant.naam}.</p>
+        </div>
         <Link href={`${basis}/reservaties/nieuw`} className="btn">
-          Reservatie toevoegen
+          + Reservatie toevoegen
         </Link>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         {kaarten.map((k, i) => (
-          <section key={k.datum} className="rounded-lg border border-neutral-300 bg-white p-4">
+          <section key={k.datum} className="beheer-dashboard-card rounded-lg border border-neutral-300 bg-white p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="text-lg font-semibold">
-                {i === 0 ? "Vandaag" : "Morgen"} <span className="font-normal text-neutral-600">{formatDatum(k.datum)}</span>
+                {i === 0 ? "Vandaag" : "Morgen"} <span className="beheer-card-date">{formatDatum(k.datum)}</span>
               </h2>
               <Link href={`${basis}/dag/${k.datum}`} className="text-sm underline">
-                Dagoverzicht / printen
+                Dagoverzicht ↗
               </Link>
             </div>
-            <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
+            <dl className="beheer-stats mt-3 grid grid-cols-3 gap-2">
               {[
-                ["Reservaties", k.reservaties],
                 ["Personen", k.personen],
                 ["Menu's", k.menus],
+                ["Reservaties", k.reservaties],
               ].map(([label, waarde]) => (
-                <div key={label} className="rounded bg-neutral-100 p-2">
-                  <dt className="text-xs text-neutral-700">{label}</dt>
-                  <dd className="text-2xl font-semibold">{waarde}</dd>
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd>{waarde}</dd>
                 </div>
               ))}
             </dl>
-            <div className="mt-4">
+            <div className="beheer-bezetting mt-4">
+              <h3>Bezetting per kwartier</h3>
               <Bezetting slots={k.slots} />
             </div>
           </section>
         ))}
       </div>
 
-      <section aria-labelledby="recent">
+      <section aria-labelledby="recent" className="beheer-recente-meldingen">
         <h2 id="recent" className="text-lg font-semibold">
           Recente meldingen
         </h2>
-        <ul className="mt-2 divide-y divide-neutral-200 rounded-lg border border-neutral-300 bg-white">
+        <ul className="mt-2 divide-y divide-neutral-200">
           {(meldingen.data ?? []).length === 0 && <li className="p-3 text-sm text-neutral-600">Nog geen meldingen.</li>}
           {(meldingen.data ?? []).map((m) => {
             const r = m.reservations as unknown as { voornaam: string; naam: string; datum: string; tijdslot: string; aantal_personen: number } | null;

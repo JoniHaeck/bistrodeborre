@@ -168,10 +168,16 @@ door de sitemap in Google Search Console en Bing Webmaster Tools aan te melden.
 
 ## Widget insluiten
 
+Onder **Instellingen → Reservatiewidget op je website** kan een beheerder de code voor
+het eigen restaurant kopiëren, voor een widget op de pagina of een knop met popup.
+Het basisadres komt uit `NEXT_PUBLIC_SITE_URL`; in productie moet dit een publiek
+HTTPS-adres zijn. De popupcode bevat de opgeslagen restaurantnaam en knopkleur: kopieer
+ze opnieuw wanneer die wijzigen.
+
 Plaats op de publieke website (`data-restaurant` is verplicht):
 
 ```html
-<script src="https://bistrodeborre.vercel.app/embed.js" data-restaurant="bistro-de-borre"
+<script src="https://www.tafelvrij.be/embed.js" data-restaurant="bistro-de-borre"
         data-kleur="#8b8a69" data-lettertype="Georgia, serif"></script>
 ```
 
@@ -182,7 +188,7 @@ automatisch aan. Rechtstreeks kan ook: `/w/bistro-de-borre?kleur=%238b8a69&lette
 ### Als popup
 
 ```html
-<script src="https://bistrodeborre.vercel.app/embed.js" data-restaurant="bistro-de-borre"
+<script src="https://www.tafelvrij.be/embed.js" data-restaurant="bistro-de-borre"
         data-naam="Bistro de Borre" data-modus="popup" data-knop-tekst="Reserveer een tafel"></script>
 ```
 

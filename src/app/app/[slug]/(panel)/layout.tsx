@@ -2,6 +2,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { NotificatieBel } from "@/components/admin/NotificatieBel";
+import { BeheerNavigatie } from "@/components/admin/BeheerNavigatie";
 import { adminContext, isSuperadmin } from "@/lib/admin/auth";
 import { vandaagIn } from "@/lib/time";
 import { logout } from "@/app/login/actions";
@@ -26,42 +27,34 @@ async function Shell({ children, params }: { children: React.ReactNode; params: 
     .eq("restaurant_id", restaurant.id).eq("status", "in_afwachting");
   if (aanvraagFout) console.error("Aantal groepsaanvragen laden mislukt", aanvraagFout);
   const links = [
-    { href: `${basis}/dashboard`, label: "Dashboard" },
-    { href: `${basis}/reservaties`, label: "Reservaties" },
-    { href: `${basis}/groepsaanvragen`, label: `Groepsaanvragen${count ? ` (${count})` : ""}` },
-    { href: `${basis}/dag/${vandaag}`, label: "Dagoverzicht" },
-    { href: `${basis}/shiften`, label: "Shiften" },
-    { href: `${basis}/instellingen`, label: "Instellingen" },
+    { href: `${basis}/dashboard`, segment: `${basis}/dashboard`, label: "Dashboard" },
+    { href: `${basis}/reservaties`, segment: `${basis}/reservaties`, label: "Reservaties" },
+    { href: `${basis}/groepsaanvragen`, segment: `${basis}/groepsaanvragen`, label: `Groepsaanvragen${count ? ` (${count})` : ""}` },
+    { href: `${basis}/dag/${vandaag}`, segment: `${basis}/dag`, label: "Dagoverzicht" },
+    { href: `${basis}/shiften`, segment: `${basis}/shiften`, label: "Shiften" },
+    { href: `${basis}/instellingen`, segment: `${basis}/instellingen`, label: "Instellingen" },
   ];
+  if (superadmin) links.push({ href: "/platform", segment: "/platform", label: "Platform" });
   return (
     <>
-      <header className="border-b border-[var(--primair-rand)] bg-[var(--primair-licht)] print:hidden">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
-          <Link href="/app" className="flex items-baseline gap-2 text-[var(--primair-donker)]">
-            <span className="text-xl font-semibold">{restaurant.naam}</span>
-            <span className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{PRODUCT_NAAM}</span>
+      <header className="beheer-header print:hidden">
+        <div className="beheer-header-inner">
+          <Link href="/app" className="beheer-brand" aria-label={`${PRODUCT_NAAM}: mijn restaurants`}>
+            <span aria-hidden="true">✳</span> tafelvrij<span className="beheer-brand-dot">.</span>
           </Link>
-          <nav aria-label="Beheer" className="flex flex-1 flex-wrap gap-x-4 gap-y-1">
-            {links.map((l) => (
-              <Link key={l.href} href={l.href} className="text-sm underline-offset-4 hover:underline">
-                {l.label}
-              </Link>
-            ))}
-            {superadmin && (
-              <Link href="/platform" className="text-sm font-semibold underline-offset-4 hover:underline">
-                Platform
-              </Link>
-            )}
-          </nav>
+          <div className="beheer-restaurant"><span>Werkruimte</span><strong>{restaurant.naam}</strong></div>
+          <div className="beheer-header-actions">
           <NotificatieBel restaurantId={restaurant.id} tijdzone={restaurant.tijdzone} basis={basis} />
           <form action={logout}>
             <button type="submit" className="btn-sec">
               Uitloggen
             </button>
           </form>
+          </div>
         </div>
+        <div className="beheer-nav-wrap"><BeheerNavigatie links={links} /></div>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 print:max-w-none print:p-0">{children}</main>
+      <main className="beheer-main mx-auto w-full max-w-6xl flex-1 px-4 py-6 print:max-w-none print:p-0">{children}</main>
     </>
   );
 }

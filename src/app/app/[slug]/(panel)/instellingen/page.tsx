@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { ActieFormulier } from "@/components/admin/ActieFormulier";
+import { EmbedCode } from "@/components/admin/EmbedCode";
 import { adminContext } from "@/lib/admin/auth";
+import { maakEmbedcodes } from "@/lib/embed";
 import { TIJDZONES } from "@/lib/time";
 import { bewaarInstellingen, bewaarLogo, verwijderLogo } from "./actions";
 
@@ -14,6 +16,7 @@ export default async function InstellingenPage({ params }: PageProps<"/app/[slug
     db.from("restaurants").select("email").eq("id", restaurant.id).single(),
   ]);
   if (!s) return <p role="alert">Instellingen konden niet geladen worden.</p>;
+  const embed = maakEmbedcodes(process.env.NEXT_PUBLIC_SITE_URL, restaurant, s.widget_primaire_kleur, process.env.NODE_ENV === "production");
 
   const getal = (naam: string, label: string, waarde: number, hint?: string) => (
     <label className="lbl">
@@ -96,6 +99,23 @@ export default async function InstellingenPage({ params }: PageProps<"/app/[slug
           Instellingen opslaan
         </button>
       </ActieFormulier>
+
+      <section aria-labelledby="embed-titel" className="space-y-5 rounded-lg border border-neutral-300 bg-white p-4">
+        <div>
+          <h2 id="embed-titel" className="font-semibold">Reservatiewidget op je website</h2>
+          <p className="mt-1 text-sm text-neutral-700">
+            Kopieer de code en plaats die in de HTML van je website, op de plek waar je de widget of knop wilt tonen.
+            De widget gebruikt de opgeslagen instellingen van dit restaurant.
+          </p>
+        </div>
+        {embed.ok ? (
+          <>
+            <EmbedCode titel="Widget op de pagina" uitleg="Toont het reservatieformulier rechtstreeks op je website." code={embed.inline} />
+            <EmbedCode titel="Knop met popup" uitleg="Toont een knop die het reservatieformulier in een popup opent." code={embed.popup} />
+            <p className="text-xs text-neutral-600">De knopkleur en de naam in de popup staan in de code. Kopieer de popupcode opnieuw nadat je die instellingen wijzigt.</p>
+          </>
+        ) : <p role="alert" className="text-sm text-red-800">{embed.fout} Contacteer de platformbeheerder.</p>}
+      </section>
 
       <section className="space-y-3 rounded-lg border border-neutral-300 bg-white p-4">
         <h2 className="font-semibold">Logo</h2>
