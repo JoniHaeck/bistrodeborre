@@ -160,6 +160,12 @@ dezelfde `RESEND_API_KEY` en geverifieerde `EMAIL_FROM_ADRES` als de reservatiem
 Bij een verzendfout krijgt de bezoeker een foutmelding en blijven de ingevulde gegevens
 staan. Het formulier vraagt enkel gegevens die nodig zijn om de aanvraag te beantwoorden.
 
+De startpagina gebruikt `https://www.tafelvrij.be/` als canonieke URL en bevat
+Open Graph-, Twitter- en JSON-LD-metadata. `/robots.txt` verwijst naar `/sitemap.xml`,
+die enkel de publieke Tafelvrij-startpagina bevat; restaurantpagina's worden hierdoor
+niet automatisch aan de platform-sitemap toegevoegd. De vindbaarheid kan worden opgevolgd
+door de sitemap in Google Search Console en Bing Webmaster Tools aan te melden.
+
 ## Widget insluiten
 
 Plaats op de publieke website (`data-restaurant` is verplicht):

@@ -327,6 +327,17 @@ describe("RLS: superadmin", () => {
     expect(upd.affectedRows).toBe(1);
   });
 
+  it("kan zijn eigen restaurantlijst filteren zonder lidmaatschappen van andere beheerders", async () => {
+    await als("service_role");
+    await db.query("insert into memberships (user_id, restaurant_id, rol) values ($1, $2, 'beheerder')", [SUPERADMIN, A]);
+    await als("authenticated", SUPERADMIN);
+    const eigen = await rijen<{ restaurant_id: string }>("select restaurant_id from memberships where user_id = $1 and not geblokkeerd", [SUPERADMIN]);
+    expect(eigen).toEqual([{ restaurant_id: A }]);
+    await als("service_role");
+    await db.query("delete from memberships where user_id = $1 and restaurant_id = $2", [SUPERADMIN, A]);
+    await als("authenticated", SUPERADMIN);
+  });
+
   it("kan zichzelf of anderen geen superadmin maken", async () => {
     await expect(db.query("insert into platform_admins (user_id) values ($1)", [ZONDER_LID])).rejects.toThrow(/row-level security/);
   });

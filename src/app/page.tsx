@@ -4,8 +4,26 @@ import { ContactFormulier } from "@/components/public/ContactFormulier";
 import "./website.css";
 
 export const metadata: Metadata = {
-  title: { absolute: "Tafelvrij — meer tijd voor wat telt" },
-  description: "Een eenvoudig reservatiesysteem voor restaurants. Ontvang boekingen, houd overzicht en weet vooraf hoeveel gasten het menu nemen.",
+  metadataBase: new URL("https://www.tafelvrij.be"),
+  title: { absolute: "Tafelvrij | Eenvoudig reservatiesysteem voor restaurants" },
+  description: "Ontvang online reservaties via je restaurantwebsite, beheer je shiften en zie vooraf hoeveel gasten het menu nemen. Ontdek Tafelvrij.",
+  alternates: { canonical: "https://www.tafelvrij.be/" },
+  openGraph: {
+    type: "website", locale: "nl_BE", url: "https://www.tafelvrij.be/",
+    siteName: "Tafelvrij", title: "Tafelvrij | Eenvoudig reserveren voor restaurants",
+    description: "Meer overzicht voor je restaurant. Minder administratie, meer gastvrijheid.",
+    images: [{ url: "/tafelvrij-social.png", width: 1200, height: 630, alt: "Tafelvrij — meer tijd voor wat telt" }],
+  },
+  twitter: { card: "summary_large_image", title: "Tafelvrij | Eenvoudig reserveren voor restaurants", description: "Meer overzicht voor je restaurant. Minder administratie, meer gastvrijheid.", images: ["/tafelvrij-social.png"] },
+};
+
+const schema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    { "@type": "Organization", "@id": "https://hawk-ict.be/#organisatie", name: "Hawk-ICT", url: "https://hawk-ict.be/" },
+    { "@type": "WebSite", "@id": "https://www.tafelvrij.be/#website", url: "https://www.tafelvrij.be/", name: "Tafelvrij", inLanguage: "nl-BE" },
+    { "@type": "SoftwareApplication", "@id": "https://www.tafelvrij.be/#tafelvrij", name: "Tafelvrij", url: "https://www.tafelvrij.be/", applicationCategory: "BusinessApplication", operatingSystem: "Web", inLanguage: "nl-BE", description: "Een online reservatiesysteem voor restaurants met een boekingswidget, shiftbeheer en inzicht in menukeuzes.", creator: { "@id": "https://hawk-ict.be/#organisatie" } },
+  ],
 };
 
 const voordelen = [
@@ -16,6 +34,7 @@ const voordelen = [
 
 export default function Home() {
   return <div className="tv-site">
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }} />
     <header className="tv-header">
       <div className="tv-container tv-header-inner">
         <Link href="/" className="tv-logo" aria-label="Tafelvrij startpagina"><span className="tv-logo-mark" aria-hidden="true">✳</span> tafelvrij<span className="tv-logo-dot">.</span></Link>
@@ -32,7 +51,7 @@ export default function Home() {
           <div className="tv-hero-copy">
             <p className="tv-eyebrow"><span className="tv-dot" /> GEMAAKT VOOR RESTAURANTS</p>
             <h1>Meer tijd voor<br /><em>wat telt.</em></h1>
-            <p className="tv-hero-intro">Minder geregel, meer gastvrijheid. Tafelvrij maakt reservaties eenvoudig, zodat jij je kunt richten op je gasten.</p>
+            <p className="tv-hero-intro">Tafelvrij is een eenvoudig online reservatiesysteem voor restaurants. Ontvang boekingen via je website en zie vooraf hoeveel gasten het menu nemen.</p>
             <div className="tv-hero-buttons"><a className="tv-button tv-button-dark" href="#contact">Ontdek Tafelvrij <span aria-hidden="true">↗</span></a><a className="tv-text-link" href="#werking">Zo werkt het <span aria-hidden="true">↓</span></a></div>
             <div className="tv-hero-note"><span className="tv-note-icon">✳</span><span>Eenvoudig in gebruik.<br /><strong>Gemaakt voor de horeca.</strong></span></div>
           </div>
@@ -75,11 +94,21 @@ export default function Home() {
 
       <section className="tv-quote"><div className="tv-container"><span className="tv-quote-star">✳</span><p>Je restaurant draait om mensen.<br /><em>Je reservatiesysteem helpt je daarbij.</em></p><span className="tv-quote-label">MINDER ADMINISTRATIE. MEER AANDACHT.</span></div></section>
 
+      <section className="tv-section tv-faq" aria-labelledby="faq-titel"><div className="tv-container tv-faq-grid">
+        <div><p className="tv-eyebrow">GOED OM TE WETEN</p><h2 id="faq-titel">Veelgestelde<br /><em>vragen.</em></h2></div>
+        <div className="tv-faq-list">
+          <article><h3>Wat is Tafelvrij?</h3><p>Tafelvrij is een online reservatiesysteem voor restaurants. Gasten boeken een tafel en geven aan of ze het menu nemen. Het restaurant beheert de reservaties en shiften in één overzicht.</p></article>
+          <article><h3>Kan ik reserveren via mijn eigen website aanbieden?</h3><p>Ja. Je kunt de boekingswidget van Tafelvrij insluiten op je restaurantwebsite, als onderdeel van de pagina of als popup.</p></article>
+          <article><h3>Kan ik bepalen hoeveel gasten er per tijdstip boeken?</h3><p>Ja. Je stelt shiften en capaciteit per tijdslot in. Je kunt ook sluitingsdagen en uitzonderingen toevoegen.</p></article>
+          <article><h3>Kunnen gasten hun reservatie aanpassen?</h3><p>Via de persoonlijke link in de bevestigingsmail kunnen gasten hun reservatie bekijken, wijzigen of annuleren tot 24 uur vooraf. Daarna contacteren ze het restaurant.</p></article>
+        </div>
+      </div></section>
+
       <section id="contact" className="tv-section tv-contact"><div className="tv-container tv-contact-grid">
         <div><p className="tv-eyebrow"><span className="tv-dot" /> ZULLEN WE KENNISMAKEN?</p><h2>Klaar voor meer<br /><em>ruimte aan tafel?</em></h2><p>Benieuwd of Tafelvrij bij jouw restaurant past? Vertel ons wat je zoekt. We denken graag met je mee.</p><div className="tv-contact-flourish" aria-hidden="true">✳</div></div>
         <ContactFormulier />
       </div></section>
     </main>
-    <footer className="tv-footer"><div className="tv-container tv-footer-inner"><Link href="/" className="tv-logo"><span className="tv-logo-mark">✳</span> tafelvrij<span className="tv-logo-dot">.</span></Link><p>Gemaakt voor de mensen achter de tafel.</p><div><a href="#contact">Contact</a><Link href="/login">Inloggen ↗</Link></div></div><div className="tv-container tv-footer-bottom">© Tafelvrij <span>Met aandacht voor gastvrijheid.</span></div></footer>
+    <footer className="tv-footer"><div className="tv-container tv-footer-inner"><Link href="/" className="tv-logo"><span className="tv-logo-mark">✳</span> tafelvrij<span className="tv-logo-dot">.</span></Link><p>Gemaakt voor de mensen achter de tafel.</p><div><a href="#contact">Contact</a><Link href="/login">Inloggen ↗</Link></div></div><div className="tv-container tv-footer-bottom">© Tafelvrij <span>Een product van <a href="https://hawk-ict.be/">Hawk-ICT ↗</a></span></div></footer>
   </div>;
 }

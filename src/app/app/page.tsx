@@ -23,10 +23,13 @@ export default function AppIndex() {
 async function Lijst() {
   await connection();
   const db = await ingelogdeDb();
-  const [superadmin, { data: lidmaatschappen }] = await Promise.all([
+  const { data: { user }, error } = await db.auth.getUser();
+  if (error || !user) throw new Error("Sessie kon niet worden gecontroleerd.");
+  const [superadmin, { data: lidmaatschappen, error: lidFout }] = await Promise.all([
     isSuperadmin(db),
-    db.from("memberships").select("restaurants(slug, naam)").eq("geblokkeerd", false).order("created_at"),
+    db.from("memberships").select("restaurants(slug, naam)").eq("user_id", user.id).eq("geblokkeerd", false).order("created_at"),
   ]);
+  if (lidFout) throw lidFout;
   const restaurants = (lidmaatschappen ?? []).flatMap((m) => (m.restaurants ? [m.restaurants] : []));
 
   if (superadmin && restaurants.length === 0) redirect("/platform");
