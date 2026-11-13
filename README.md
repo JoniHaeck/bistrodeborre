@@ -143,6 +143,7 @@ uitgevoerd worden (bv. via de Supabase SQL Editor).
 
 | Route | Wat |
 |---|---|
+| `/` | publieke website van Tafelvrij met contactformulier |
 | `/{slug}` | publieke boekingspagina van een restaurant |
 | `/w/{slug}` | embedbare widget (mag in een iframe op elke site) |
 | `/reservatie-beheren/{token}` | persoonlijke beheerpagina; oude `/annuleren/{token}`-links verwijzen hiernaar |
@@ -152,6 +153,12 @@ uitgevoerd worden (bv. via de Supabase SQL Editor).
 | `/platform` | superadmin: alle restaurants, nieuw restaurant, beheerders koppelen, status |
 
 Oude URL's (`/reserveren`, `/widget`, `/admin/...`) verwijzen door naar Bistro de Borre.
+
+Het contactformulier verstuurt via Resend een e-mail naar `CONTACT_EMAIL` (standaard
+`joni.haeck@gmail.com`), met het adres van de aanvrager als antwoordadres. Het gebruikt
+dezelfde `RESEND_API_KEY` en geverifieerde `EMAIL_FROM_ADRES` als de reservatiemails.
+Bij een verzendfout krijgt de bezoeker een foutmelding en blijven de ingevulde gegevens
+staan. Het formulier vraagt enkel gegevens die nodig zijn om de aanvraag te beantwoorden.
 
 ## Widget insluiten
 

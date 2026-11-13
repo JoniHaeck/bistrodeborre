@@ -7,8 +7,6 @@ const nextConfig: NextConfig = {
   async redirects() {
     // Oude URL's van vóór de routing per restaurant (Bistro de Borre was het enige restaurant).
     return [
-      // Geen publieke startpagina: beheerders gaan naar hun restaurant(s), gasten gebruiken /{slug}.
-      { source: "/", destination: "/app", permanent: false },
       { source: "/reserveren", destination: "/bistro-de-borre", permanent: false },
       { source: "/reserveren/annuleren/:token", destination: "/annuleren/:token", permanent: true },
       { source: "/widget", destination: "/w/bistro-de-borre", permanent: false },
