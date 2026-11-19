@@ -17,6 +17,7 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      { source: "/uitnodiging", headers: [{ key: "Cache-Control", value: "private, no-store" }, { key: "Referrer-Policy", value: "no-referrer" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }] },
       { source: "/reservatie-beheren/:token", headers: [{ key: "Cache-Control", value: "private, no-store" }, { key: "Referrer-Policy", value: "no-referrer" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }] },
       { source: "/annuleren/:token", headers: [{ key: "Cache-Control", value: "private, no-store" }, { key: "Referrer-Policy", value: "no-referrer" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }] },
       // De widget (/w/{slug}) mag overal ingebed worden; al het andere niet (clickjacking-bescherming, o.a. beheer).

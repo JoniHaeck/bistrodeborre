@@ -38,6 +38,7 @@ async function Formulier({ searchParams }: { searchParams: Promise<{ volgende?: 
         Wachtwoord
         <input name="password" type="password" autoComplete="current-password" required className="veld" />
       </label>
+      <p className="text-right text-sm"><Link href="/login/wachtwoord-vergeten" className="underline">Wachtwoord vergeten?</Link></p>
       <button type="submit" className="btn w-full">
         Inloggen
       </button>

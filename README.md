@@ -93,6 +93,14 @@ Een superadmin kan onder **Platform** een bestaand account koppelen of een nieuw
 beheerder per e-mail uitnodigen. De gastbeheerder kiest zelf een wachtwoord via de
 eenmalige uitnodigingslink. Supabase Auth verstuurt de uitnodiging: stel daar SMTP in
 en voeg `https://<app-domein>/uitnodiging` toe aan de toegestane redirect-URL's.
+Dezelfde redirect wordt gebruikt voor **Wachtwoord vergeten?** op de loginpagina.
+Supabase Auth verstuurt de herstelmail via zijn eigen SMTP-instellingen en
+herstelt het wachtwoord via een eenmalige link; de gebruiker kan de mail ook op
+een ander toestel openen. Stel in Supabase Auth een passend Nederlandstalig
+herstelsjabloon in en laat de Supabase-variabele `{{ .ConfirmationURL }}` intact.
+`NEXT_PUBLIC_SITE_URL` moet overeenkomen met het toegestane app-domein.
+De lokale `supabase/config.toml` wordt niet automatisch toegepast op productie:
+gebruik geen `supabase config push` zonder eerst alle productie-instellingen te controleren.
 `NEXT_PUBLIC_SITE_URL` moet naar het publieke HTTPS-appadres wijzen. Als de mail al
 verzonden is maar de koppeling mislukt, kan de superadmin het bestaande account alsnog
 koppelen. Een uitnodiging aan een nog onbevestigd uitnodigingsaccount kan opnieuw
