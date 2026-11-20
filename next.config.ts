@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  experimental: { agentUpgrade: "security" },
   async redirects() {
     // Oude URL's van vóór de routing per restaurant (Bistro de Borre was het enige restaurant).
     return [
