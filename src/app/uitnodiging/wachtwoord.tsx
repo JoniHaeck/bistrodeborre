@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import type { Database } from "@/types/database";
 import { controleerWachtwoordLink } from "@/lib/wachtwoord-link";
+import { wachtwoordFout } from "@/lib/wachtwoord-fout";
 
 export function WachtwoordInstellen() {
   const client = useRef<SupabaseClient<Database> | null>(null);
@@ -60,7 +61,13 @@ export function WachtwoordInstellen() {
       if (error) throw error;
     } catch (error) {
       console.error("Wachtwoord instellen mislukt", error);
-      setFout("Wachtwoord instellen mislukt. Probeer opnieuw of vraag een nieuwe link aan.");
+      const resultaat = wachtwoordFout(error);
+      setFout(resultaat.bericht);
+      if (resultaat.nieuweLink) {
+        window.sessionStorage.removeItem("uitnodiging-gebruiker");
+        window.sessionStorage.removeItem("herstel-gebruiker");
+        setKlaar(false);
+      }
       setBezig(false);
       return;
     }
@@ -86,7 +93,7 @@ export function WachtwoordInstellen() {
         </form>
       )}
       {!klaar && !fout && <p role="status">Link controleren…</p>}
-      {fout && <p className="mt-3 text-sm"><Link className="underline" href="/login/wachtwoord-vergeten">Een nieuwe herstellink aanvragen</Link></p>}
+      {fout && !klaar && <p className="mt-3 text-sm"><Link className="underline" href="/login/wachtwoord-vergeten">Een nieuwe herstellink aanvragen</Link></p>}
     </div>
   );
 }
